@@ -86,6 +86,7 @@ class ProductSearchEmbedding_model(object):
 			'user' : entity('user', data_set.user_ids),
 			'product' : entity('product', data_set.product_ids),
 			'word' : entity('word', data_set.words),
+			'related_product' : entity('related_product',data_set.related_product_ids),
 			'brand' : entity('brand', data_set.brand_ids),
 			'categories' : entity('categories', data_set.category_ids),
 		}
@@ -105,9 +106,9 @@ class ProductSearchEmbedding_model(object):
 			}
 		self.relation_dict = {
 			'word' : relation('write', data_set.vocab_distribute),
-			'also_bought' : relation('also_bought', data_set.product_distribute),
-			'also_viewed' : relation('also_viewed', data_set.product_distribute),
-			'bought_together' : relation('bought_together', data_set.product_distribute),
+			'also_bought' : relation('also_bought', data_set.knowledge['also_bought']['distribute']),
+			'also_viewed' : relation('also_viewed', data_set.knowledge['also_viewed']['distribute']),
+			'bought_together' : relation('bought_together', data_set.knowledge['bought_together']['distribute']),
 			'brand' : relation('is_brand', data_set.knowledge['brand']['distribute']),
 			'categories' : relation('is_category', data_set.knowledge['categories']['distribute'])
 		}

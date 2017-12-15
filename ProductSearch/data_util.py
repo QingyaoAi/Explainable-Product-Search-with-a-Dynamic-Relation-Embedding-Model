@@ -67,6 +67,11 @@ class Tensorflow_data:
 				self.product_query_idx.append(query_idx)
 
 		# get knowledge
+		self.related_product_ids = []
+		with gzip.open(data_path + 'related_product.txt.gz', 'r') as fin:
+			for line in fin:
+				self.related_product_ids.append(line.strip())
+		self.related_product_size = len(self.related_product_ids)
 		self.brand_ids = []
 		with gzip.open(data_path + 'brand.txt.gz', 'r') as fin:
 			for line in fin:
@@ -85,9 +90,9 @@ class Tensorflow_data:
 			'categories' : data_path + 'category_p_c.txt.gz'
 		}
 		knowledge_vocab = {
-			'also_bought' : self.product_ids,
-			'also_viewed' : self.product_ids,
-			'bought_together' : self.product_ids,
+			'also_bought' : self.related_product_ids,
+			'also_viewed' : self.related_product_ids,
+			'bought_together' : self.related_product_ids,
 			'brand' : self.brand_ids,
 			'categories' : self.category_ids
 		}

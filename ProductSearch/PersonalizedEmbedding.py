@@ -136,19 +136,19 @@ def build_graph_and_loss(model, scope = None):
 		loss += pw_loss
 
 		# product + also_bought -> product
-		pab_loss, pab_embs = relation_nce_loss(model, 0.5, model.product_idxs, 'product', 'also_bought', 'product')
+		pab_loss, pab_embs = relation_nce_loss(model, 0.5, model.product_idxs, 'product', 'also_bought', 'related_product')
 		regularization_terms.extend(pab_embs)
 		pab_loss = tf.Print(pab_loss, [pab_loss], 'this is pab', summarize=5)
 		loss += pab_loss
 
 		# product + also_viewed -> product
-		pav_loss, pav_embs = relation_nce_loss(model, 0.5, model.product_idxs, 'product', 'also_viewed', 'product')
+		pav_loss, pav_embs = relation_nce_loss(model, 0.5, model.product_idxs, 'product', 'also_viewed', 'related_product')
 		regularization_terms.extend(pav_embs)
 		pav_loss = tf.Print(pav_loss, [pav_loss], 'this is pav', summarize=5)
 		loss += pav_loss
 
 		# product + bought_together -> product
-		pbt_loss, pbt_embs = relation_nce_loss(model, 0.5, model.product_idxs, 'product', 'bought_together', 'product')
+		pbt_loss, pbt_embs = relation_nce_loss(model, 0.5, model.product_idxs, 'product', 'bought_together', 'related_product')
 		regularization_terms.extend(pbt_embs)
 		pbt_loss = tf.Print(pbt_loss, [pbt_loss], 'this is pbt', summarize=5)
 		loss += pbt_loss
