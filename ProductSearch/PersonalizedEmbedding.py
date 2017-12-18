@@ -129,6 +129,12 @@ def build_graph_and_loss(model, scope = None):
 		#uqr_loss = tf.Print(uqr_loss, [uqr_loss], 'this is uqr', summarize=5)
 		loss = tf.reduce_sum(uqr_loss)
 
+		# user + write -> word
+		uw_loss, uw_embs = relation_nce_loss(model, 0.5, model.user_idxs, 'user', 'word', 'word')
+		regularization_terms.extend(uw_embs)
+		#uw_loss = tf.Print(uw_loss, [uw_loss], 'this is uw', summarize=5)
+		loss += uw_loss
+
 		# product + write -> word
 		pw_loss, pw_embs = relation_nce_loss(model, 0.5, model.product_idxs, 'product', 'word', 'word')
 		regularization_terms.extend(pw_embs)
