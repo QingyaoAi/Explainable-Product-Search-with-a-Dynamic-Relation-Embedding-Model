@@ -126,43 +126,43 @@ def build_graph_and_loss(model, scope = None):
 							model.entity_dict['product']['embedding'], model.product_bias, 
 							len(model.entity_dict['product']['vocab']), model.data_set.product_distribute) 			
 		regularization_terms.extend(uqr_embs)
-		uqr_loss = tf.Print(uqr_loss, [uqr_loss], 'this is uqr', summarize=5)
+		#uqr_loss = tf.Print(uqr_loss, [uqr_loss], 'this is uqr', summarize=5)
 		loss = tf.reduce_sum(uqr_loss)
 
 		# product + write -> word
 		pw_loss, pw_embs = relation_nce_loss(model, 0.5, model.product_idxs, 'product', 'word', 'word')
 		regularization_terms.extend(pw_embs)
-		pw_loss = tf.Print(pw_loss, [pw_loss], 'this is pw', summarize=5)
+		#pw_loss = tf.Print(pw_loss, [pw_loss], 'this is pw', summarize=5)
 		loss += pw_loss
 
 		# product + also_bought -> product
 		pab_loss, pab_embs = relation_nce_loss(model, 0.5, model.product_idxs, 'product', 'also_bought', 'related_product')
 		regularization_terms.extend(pab_embs)
-		pab_loss = tf.Print(pab_loss, [pab_loss], 'this is pab', summarize=5)
+		#pab_loss = tf.Print(pab_loss, [pab_loss], 'this is pab', summarize=5)
 		loss += pab_loss
 
 		# product + also_viewed -> product
 		pav_loss, pav_embs = relation_nce_loss(model, 0.5, model.product_idxs, 'product', 'also_viewed', 'related_product')
 		regularization_terms.extend(pav_embs)
-		pav_loss = tf.Print(pav_loss, [pav_loss], 'this is pav', summarize=5)
+		#pav_loss = tf.Print(pav_loss, [pav_loss], 'this is pav', summarize=5)
 		loss += pav_loss
 
 		# product + bought_together -> product
 		pbt_loss, pbt_embs = relation_nce_loss(model, 0.5, model.product_idxs, 'product', 'bought_together', 'related_product')
 		regularization_terms.extend(pbt_embs)
-		pbt_loss = tf.Print(pbt_loss, [pbt_loss], 'this is pbt', summarize=5)
+		#pbt_loss = tf.Print(pbt_loss, [pbt_loss], 'this is pbt', summarize=5)
 		loss += pbt_loss
 
 		# product + is_brand -> brand
 		pib_loss, pib_embs = relation_nce_loss(model, 0.5, model.product_idxs, 'product', 'brand', 'brand')
 		regularization_terms.extend(pib_embs)
-		pib_loss = tf.Print(pib_loss, [pib_loss], 'this is pib', summarize=5)
+		#pib_loss = tf.Print(pib_loss, [pib_loss], 'this is pib', summarize=5)
 		loss += pib_loss
 
 		# product + is_category -> categories
 		pic_loss, pic_embs = relation_nce_loss(model, 0.5, model.product_idxs, 'product', 'categories', 'categories')
 		regularization_terms.extend(pic_embs)
-		pic_loss = tf.Print(pic_loss, [pw_loss], 'this is pic', summarize=5)
+		#pic_loss = tf.Print(pic_loss, [pw_loss], 'this is pic', summarize=5)
 		loss += pic_loss
 
 		# L2 regularization
