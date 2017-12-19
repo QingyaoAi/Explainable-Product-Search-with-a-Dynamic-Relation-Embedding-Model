@@ -132,7 +132,55 @@ class ProductSearchEmbedding_model(object):
 			#self.updates = opt.apply_gradients(zip(self.gradients, params),
 			#								 global_step=self.global_step)
 		else:
-			self.product_scores = PersonalizedEmbedding.get_product_scores(self, self.user_idxs, self.query_word_idxs)
+			# Compute all information based on user+query
+			# user + query -> product
+			self.product_scores, uq_vec = PersonalizedEmbedding.get_product_scores(self, self.user_idxs, self.query_word_idxs)
+			# user + write -> word
+			user_vec = tf.nn.embedding_lookup(self.entity_dict['user']['embedding'], self.user_idxs)
+			self.uw_scores, uw_vec = PersonalizedEmbedding.get_relation_scores(self, 0.5, user_vec, 'word', 'word')
+			# user + query + write -> word
+			self.uqw_scores, uqw_vec = PersonalizedEmbedding.get_relation_scores(self, 0.5, uq_vec, 'word', 'word')
+			# user + query + also_bought -> product
+			self.uqab_scores, uqab_vec = PersonalizedEmbedding.get_relation_scores(self, 0.5, uq_vec, 'also_bought', 'related_product')
+			# user + query + also_viewed -> product
+			self.uqav_scores, uqav_vec = PersonalizedEmbedding.get_relation_scores(self, 0.5, uq_vec, 'also_viewed', 'related_product')
+			# user + query + bought_together -> product
+			self.uqbt_scores, uqbt_vec = PersonalizedEmbedding.get_relation_scores(self, 0.5, uq_vec, 'bought_together', 'related_product')
+			# user + query + is_brand -> brand
+			self.uqib_scores, uqib_vec = PersonalizedEmbedding.get_relation_scores(self, 0.5, uq_vec, 'brand', 'brand')
+			# user + query + is_category -> category
+			self.uqic_scores, uqic_vec = PersonalizedEmbedding.get_relation_scores(self, 0.5, uq_vec, 'categories', 'categories')
+			self.uq_entity_list = [
+				('search', 'product', self.product_scores), ('write', 'word', self.uw_scores),
+				('also_bought', 'related_product', self.uqab_scores), 
+				('also_viewed', 'related_product', self.uqav_scores),
+				('bought_together', 'related_product', self.uqbt_scores),
+				('brand', 'brand', self.uqib_scores),
+				('categories', 'categories', self.uqic_scores),
+			]
+			
+			# Compute all information based on product
+			# product + write -> word
+			p_vec = tf.nn.embedding_lookup(self.entity_dict['product']['embedding'], self.product_idxs)
+			self.pw_scores, pw_vec = PersonalizedEmbedding.get_relation_scores(self, 0.5, p_vec, 'word', 'word')
+			# product + also_bought -> product
+			self.pab_scores, pab_vec = PersonalizedEmbedding.get_relation_scores(self, 0.5, p_vec, 'also_bought', 'related_product')
+			# product + also_viewed -> product
+			self.pav_scores, pav_vec = PersonalizedEmbedding.get_relation_scores(self, 0.5, p_vec, 'also_viewed', 'related_product')
+			# product + bought_together -> product
+			self.pbt_scores, pbt_vec = PersonalizedEmbedding.get_relation_scores(self, 0.5, p_vec, 'bought_together', 'related_product')
+			# product + is_brand -> brand
+			self.pib_scores, pib_vec = PersonalizedEmbedding.get_relation_scores(self, 0.5, p_vec, 'brand', 'brand')
+			# product + is_category -> category
+			self.pic_scores, pic_vec = PersonalizedEmbedding.get_relation_scores(self, 0.5, p_vec, 'categories', 'categories')
+			self.p_entity_list = [
+				('write', 'word', self.pw_scores),
+				('also_bought', 'related_product', self.pab_scores), 
+				('also_viewed', 'related_product', self.pav_scores),
+				('bought_together', 'related_product', self.pbt_scores),
+				('brand', 'brand', self.pib_scores),
+				('categories', 'categories', self.pic_scores),
+			]
 	
 		self.saver = tf.train.Saver(tf.global_variables())
 	
@@ -159,6 +207,7 @@ class ProductSearchEmbedding_model(object):
 		"""
 	
 		# Output feed: depends on whether we do a backward step or not.
+		entity_list = None
 		if not forward_only:
 			output_feed = [self.updates,	# Update Op that does SGD.
 						 #self.norm,	# Gradient norm.
@@ -178,7 +227,12 @@ class ProductSearchEmbedding_model(object):
 					output_feed.append(self.relation_dict[key]['bias'])
 				self.embed_output_keys.append('Wu')
 				output_feed.append(self.Wu)
-				
+			elif 'explain' in test_mode:
+				if test_mode == 'explain_user_query':
+					entity_list = self.uq_entity_list
+				elif test_mode == 'explain_product':
+					entity_list = self.p_entity_list
+				output_feed = [scores for _, _, scores in entity_list]
 			else:
 				output_feed = [self.product_scores] #negative instance output
 	
@@ -188,6 +242,8 @@ class ProductSearchEmbedding_model(object):
 		else:
 			if test_mode == 'output_embedding':
 				return outputs, self.embed_output_keys
+			elif 'explain' in test_mode:
+				return [(entity_list[i][0], entity_list[i][1], outputs[i]) for i in xrange(len(entity_list))], None
 			else:
 				return outputs[0], None	# product scores to input user
 

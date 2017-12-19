@@ -43,17 +43,44 @@ def get_product_scores(model, user_idxs, query_word_idx, product_idxs = None, sc
 			product_bias = model.product_bias								
 												
 		print('Similarity Function : ' + model.similarity_func)										
-		
+		example_vec = (1.0 - model.Wu) * user_vec + model.Wu * query_vec
 		
 		if model.similarity_func == 'product':										
-			return tf.matmul((1.0 - model.Wu) * user_vec + model.Wu * query_vec, product_vec, transpose_b=True)
+			return tf.matmul(example_vec, product_vec, transpose_b=True), example_vec
 		elif model.similarity_func == 'bias_product':
-			return tf.matmul((1.0 - model.Wu) * user_vec + model.Wu * query_vec, product_vec, transpose_b=True) + product_bias
+			return tf.matmul(example_vec, product_vec, transpose_b=True) + product_bias, example_vec
 		else:										
-			user_vec = user_vec / tf.sqrt(tf.reduce_sum(tf.square(user_vec), 1, keep_dims=True))
-			query_vec = query_vec / tf.sqrt(tf.reduce_sum(tf.square(query_vec), 1, keep_dims=True))
+			norm_vec = example_vec / tf.sqrt(tf.reduce_sum(tf.square(example_vec), 1, keep_dims=True))
 			product_vec = product_vec / tf.sqrt(tf.reduce_sum(tf.square(product_vec), 1, keep_dims=True))									
-			return tf.matmul((1.0 - model.Wu) * user_vec + model.Wu * query_vec, product_vec, transpose_b=True)
+			return tf.matmul(norm_vec, product_vec, transpose_b=True), example_vec
+
+def get_relation_scores(model, add_weight, head_vec, relation_name, tail_name, tail_idxs = None, scope = None):
+	with variable_scope.variable_scope(scope or "embedding_graph"):										
+		# get relation embedding [None, embed_size]
+		relation_vec = model.relation_dict[relation_name]['embedding']
+		relation_bias = model.relation_dict[relation_name]['bias']
+
+		# get candidate product embedding [None, embed_size]										
+		tail_vec = None
+		tail_bias = None
+		if tail_idxs != None:										
+			tail_vec = tf.nn.embedding_lookup(model.entity_dict[tail_name]['embedding'], tail_idxs)									
+			tail_bias = tf.nn.embedding_lookup(relation_bias, tail_idxs)
+		else:										
+			tail_vec = model.entity_dict[tail_name]['embedding']
+			tail_bias = relation_bias								
+								
+		example_vec = (1.0 - add_weight) * head_vec + add_weight * relation_vec
+		
+		if model.similarity_func == 'product':										
+			return tf.matmul(example_vec, tail_vec, transpose_b=True), example_vec
+		elif model.similarity_func == 'bias_product':
+			return tf.matmul(example_vec, tail_vec, transpose_b=True) + tail_bias, example_vec
+		else:										
+			norm_vec = example_vec / tf.sqrt(tf.reduce_sum(tf.square(example_vec), 1, keep_dims=True))
+			tail_vec = tail_vec / tf.sqrt(tf.reduce_sum(tf.square(tail_vec), 1, keep_dims=True))									
+			return tf.matmul(norm_vec, tail_vec, transpose_b=True), example_vec
+
 
 def get_fs_from_words(model, word_vecs, reuse, scope=None):
 	with variable_scope.variable_scope(scope or 'f_s_abstraction',

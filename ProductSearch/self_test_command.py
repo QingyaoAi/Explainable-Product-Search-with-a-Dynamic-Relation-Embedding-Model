@@ -25,13 +25,16 @@ command += ' --embed_size 10'
 #command += ' --use_balance_query_loss true'
 #command += ' --self_test true'
 
-os.system('rm ./tmp/*')
+#os.system('rm ./tmp/*')
 
-print(command)
-os.system(command)
+#print(command)
+#os.system(command)
 
-print(command + ' --decode true' + ' --test_mode output_embedding')
-os.system(command + ' --decode true' + ' --test_mode output_embedding')
+#print(command + ' --decode true' + ' --test_mode output_embedding')
+#os.system(command + ' --decode true' + ' --test_mode output_embedding')
 
-print(command + ' --decode true' + ' --test_mode product_scores' + ' --similarity_func product')
-os.system(command + ' --decode true' + ' --test_mode product_scores' + ' --similarity_func bias_product')
+#print(command + ' --decode true' + ' --test_mode product_scores' + ' --similarity_func bias_product')
+#os.system(command + ' --decode true' + ' --test_mode product_scores' + ' --similarity_func bias_product')
+
+print(command + ' --decode true' + ' --test_mode explain')
+os.system(command + ' --decode true' + ' --test_mode explain')

@@ -11,7 +11,7 @@ import math
 import os
 import random
 import sys
-import time
+import time, copy
 
 import numpy as np
 from six.moves import xrange	# pylint: disable=redefined-builtin
@@ -38,7 +38,7 @@ tf.app.flags.DEFINE_integer("batch_size", 64,
 tf.app.flags.DEFINE_string("data_dir", "/tmp", "Data directory")
 tf.app.flags.DEFINE_string("input_train_dir", "", "The directory of training and testing data")
 tf.app.flags.DEFINE_string("train_dir", "/tmp", "Model directory & output directory")
-tf.app.flags.DEFINE_string("similarity_func", "product", "Select similarity function, which could be product, cosine and bias_product")
+tf.app.flags.DEFINE_string("similarity_func", "bias_product", "Select similarity function, which could be product, cosine and bias_product")
 tf.app.flags.DEFINE_string("net_struct", "simplified_fs", "Specify network structure parameters. Please read readme.txt for details.")
 tf.app.flags.DEFINE_integer("embed_size", 100, "Size of each embedding.")
 tf.app.flags.DEFINE_integer("window_size", 5, "Size of context window.")
@@ -222,6 +222,68 @@ def output_embedding():
 			
 	return
 
+def interactive_explain_mode():
+	# Prepare data.
+	print("Reading data in %s" % FLAGS.data_dir)
+	FLAGS.batch_size = 1
+	
+	data_set = data_util.Tensorflow_data(FLAGS.data_dir, FLAGS.input_train_dir, 'test')
+	data_set.read_train_product_ids(FLAGS.input_train_dir)
+	current_step = 0
+	config = tf.ConfigProto()
+	config.gpu_options.allow_growth = True
+	with tf.Session(config=config) as sess:
+		# Create model.
+		print("Read model")
+		model = create_model(sess, True, data_set, data_set.train_review_size)
+		user_ranklist_map = {}
+		user_ranklist_score_map = {}
+		print('Start Interactive Process')
+		words_to_train = float(FLAGS.max_train_epoch * data_set.word_count) + 1
+		test_seq = [i for i in xrange(data_set.review_size)]
+		model.setup_data_set(data_set, words_to_train)
+		model.intialize_epoch(test_seq)
+		model.prepare_test_epoch()
+		has_next = True
+		input_feed, has_next, uqr_pairs = model.get_test_batch()
+		while True:
+			# read information from stdin
+			mode, user_idx, query_idx, product_idx = None, None, None, None
+			test_feed = copy.deepcopy(input_feed)
+			print('Enter rank cut:')
+			rank_cut = int(sys.stdin.readline().strip())
+			print('Enter mode:')
+			mode = sys.stdin.readline().strip()
+			# Output user+query or product?
+			if mode == 'product': # product
+				print('Enter product idx or name:')
+				product_idx = data_set.get_idx(sys.stdin.readline().strip(), 'product')
+				test_feed[model.product_idxs.name] = [product_idx]
+				p_entity_list, _ = model.step(sess, test_feed, True, 'explain_product')
+				# output results
+				print('Product %d %s' % (product_idx, data_set.product_ids[product_idx]))
+				for relation_name, entity_name, entity_scores in p_entity_list:
+					data_set.print_entity_list(relation_name, entity_name, entity_scores[0], rank_cut, {})
+			else: # user + query
+				print('Enter user idx or name:')
+				user_idx = data_set.get_idx(sys.stdin.readline().strip(), 'user')
+				print('Enter query idx:')
+				query_idx = int(sys.stdin.readline().strip())
+				query_word_idx = model.data_set.query_words[query_idx]
+				test_feed[model.user_idxs.name] = [user_idx]
+				test_feed[model.query_word_idxs.name] = [query_word_idx]
+				uq_entity_list, _ = model.step(sess, test_feed, True, 'explain_user_query')
+				remove_map = {
+					'product' : data_set.user_train_product_set_list[user_idx]
+				}
+				print('User %d %s' % (user_idx, data_set.user_ids[user_idx]))
+				print('Query %d %s' % (query_idx, '_'.join([data_set.words[x] for x in query_word_idx])))
+				# output results
+				for relation_name, entity_name, entity_scores in uq_entity_list:
+					data_set.print_entity_list(relation_name, entity_name, entity_scores[0], rank_cut, remove_map)
+
+	return
+
 
 def main(_):
 	if FLAGS.input_train_dir == "":
@@ -230,6 +292,8 @@ def main(_):
 	if FLAGS.decode:
 		if FLAGS.test_mode == 'output_embedding':
 			output_embedding()
+		elif 'explain' in FLAGS.test_mode:
+			interactive_explain_mode()
 		else:
 			get_product_scores()
 	else:

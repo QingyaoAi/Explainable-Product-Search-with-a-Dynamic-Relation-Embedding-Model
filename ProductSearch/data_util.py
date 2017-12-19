@@ -82,6 +82,15 @@ class Tensorflow_data:
 			for line in fin:
 				self.category_ids.append(line.strip())
 		self.category_size = len(self.category_ids)
+
+		self.entity_vocab = {
+			'user' : self.user_ids,
+			'word' : self.words,
+			'product' : self.product_ids,
+			'related_product' : self.related_product_ids,
+			'brand' : self.brand_ids,
+			'categories' : self.category_ids
+		}
 		knowledge_file_dict = {
 			'also_bought' : data_path + 'also_bought_p_p.txt.gz',
 			'also_viewed' : data_path + 'also_viewed_p_p.txt.gz',
@@ -164,7 +173,6 @@ class Tensorflow_data:
 							+ ' ' + str(user_ranklist_score_map[uq_pair][i]) + ' ProductSearchEmbedding\n')
 
 
-
 	def output_embedding(self, embeddings, output_file_name):
 		with open(output_file_name,'w') as emb_fout:
 			try:
@@ -186,7 +194,38 @@ class Tensorflow_data:
 				#else:
 				#	emb_fout.write(str(embeddings) + '\n')
 
-
+	def print_entity_list(self, relation_name, entity_name, entity_scores, rank_cut, remove_map):
+		if entity_name not in self.entity_vocab:
+			print('Cannot find entity %s' % entity_name)
+		print('%s list: rank, id, name, score' % relation_name)
+		sorted_entity_idxs = sorted(range(len(entity_scores)), 
+									key=lambda k: entity_scores[k], reverse=True)
+		entity_rank_list = []
+		entity_rank_scores = []
+		rank = 0
+		for entity_idx in sorted_entity_idxs:
+			if entity_name in remove_map and entity_idx in remove_map[entity_name]:
+				continue
+			if math.isnan(entity_scores[entity_idx]):
+				continue
+			entity_rank_list.append(entity_idx)
+			entity_rank_scores.append(entity_scores[entity_idx])
+			rank += 1
+			if rank >= rank_cut:
+				break
+		# print results
+		for i in xrange(len(entity_rank_list)):
+			print('%d\t%d\t"%s"\t%.4f' % (i, entity_rank_list[i], 
+				self.entity_vocab[entity_name][entity_rank_list[i]], entity_rank_scores[i]))
+	
+	def get_idx(self, input_str, entity_name):
+		if entity_name not in self.entity_vocab:
+			print('Cannot find entity %s' % entity_name)
+			return None
+		try:
+			return self.entity_vocab[entity_name].index(input_str)
+		except:
+			return int(input_str)
 
 
 
