@@ -43,7 +43,8 @@ def get_product_scores(model, user_idxs, query_word_idx, product_idxs = None, sc
 			product_bias = model.product_bias								
 												
 		print('Similarity Function : ' + model.similarity_func)										
-		example_vec = (1.0 - model.Wu) * user_vec + model.Wu * query_vec
+		#example_vec = (1.0 - model.Wu) * user_vec + model.Wu * query_vec
+		example_vec = user_vec + query_vec
 		
 		if model.similarity_func == 'product':										
 			return tf.matmul(example_vec, product_vec, transpose_b=True), example_vec
@@ -70,7 +71,8 @@ def get_relation_scores(model, add_weight, head_vec, relation_name, tail_name, t
 			tail_vec = model.entity_dict[tail_name]['embedding']
 			tail_bias = relation_bias								
 								
-		example_vec = (1.0 - add_weight) * head_vec + add_weight * relation_vec
+		#example_vec = (1.0 - add_weight) * head_vec + add_weight * relation_vec
+		example_vec = head_vec + relation_vec
 		
 		if model.similarity_func == 'product':										
 			return tf.matmul(example_vec, tail_vec, transpose_b=True), example_vec
@@ -236,7 +238,8 @@ def pair_search_loss(model, add_weight, relation_vec, example_idxs, example_emb,
 			unigrams=label_distribution))								
 											
 	#get example embeddings [batch_size, embed_size]
-	example_vec = tf.nn.embedding_lookup(example_emb, example_idxs) * (1-add_weight) + relation_vec * add_weight							
+	#example_vec = tf.nn.embedding_lookup(example_emb, example_idxs) * (1-add_weight) + relation_vec * add_weight							
+	example_vec = tf.nn.embedding_lookup(example_emb, example_idxs) + relation_vec
 											
 	#get label embeddings and bias [batch_size, embed_size], [batch_size, 1]										
 	true_w = tf.nn.embedding_lookup(label_emb, label_idxs)										
