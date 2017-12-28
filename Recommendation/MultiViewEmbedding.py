@@ -35,7 +35,7 @@ class MultiViewEmbedding_model(object):
 	
 		Args:
 			vocab_size: the number of words in the corpus.
-			dm_feature_len: the length of document model features (query based).
+			dm_feature_len: the length of document model features.
 			review_size: the number of reviews in the corpus.
 			user_size: the number of users in the corpus.
 			product_size: the number of products in the corpus.
@@ -73,7 +73,7 @@ class MultiViewEmbedding_model(object):
 		self.need_image = True if self.image_weight > 0 else False
 
 		def entity(name, vocab):
-			print('%s size %s' % (name,str(len(vocab))))
+			#print('%s size %s' % (name,str(len(vocab))))
 			return {
 				'name' : name,
 				'vocab' : vocab,
@@ -94,7 +94,7 @@ class MultiViewEmbedding_model(object):
 		self.user_idxs = tf.placeholder(tf.int64, shape=[None], name="user_idxs")
 		
 		def relation(name, distribute):
-			print('%s size %s' % (name, str(len(distribute))))
+			#print('%s size %s' % (name, str(len(distribute))))
 			return {
 				'distribute' : distribute,
 				'idxs' : tf.placeholder(tf.int64, shape=[None], name="%s_idxs"%name),
@@ -115,6 +115,30 @@ class MultiViewEmbedding_model(object):
 			'categories' : relation('is_category', data_set.knowledge['categories']['distribute'])
 		}
 
+		# Select which relation to use
+		self.use_relation_dict = {
+			'also_bought' : False,
+			'also_viewed' : False,
+			'bought_together' : False,
+			'brand' : False,
+			'categories' : False,
+		}
+		if 'none' in self.net_struct:
+			print('Use no relation')
+		else:
+			need_relation_list = []
+			for key in self.use_relation_dict:
+				if key in self.net_struct:
+					self.use_relation_dict[key] = True
+					need_relation_list.append(key)
+			if len(need_relation_list) > 0:
+				print('Use relation ' + ' '.join(need_relation_list))
+			else:
+				print('Use all relation')
+				for key in self.use_relation_dict:
+					self.use_relation_dict[key] = True
+
+
 		print('L2 lambda ' + str(self.L2_lambda))
 
 		# Training losses.
@@ -133,39 +157,96 @@ class MultiViewEmbedding_model(object):
 			
 			#self.updates = opt.apply_gradients(zip(self.gradients, params),
 			#								 global_step=self.global_step)
-		self.product_scores = self.get_product_scores(self.user_idxs)
+		else:
+			#self.product_scores = self.get_product_scores(self.user_idxs)
+
+			# user + purchase -> word
+			user_vec = tf.nn.embedding_lookup(self.entity_dict['user']['embedding'], self.user_idxs)
+			self.product_scores, up_vec = self.get_relation_scores(0.5, user_vec, 'product', 'product')
+			# user + write -> word
+			self.uw_scores, uw_vec = self.get_relation_scores(0.5, user_vec, 'word', 'word')
+			# user + purchase + write -> word
+			self.upw_scores, upw_vec = self.get_relation_scores(0.5, up_vec, 'word', 'word')
+			# product + write -> word
+			p_vec = tf.nn.embedding_lookup(self.entity_dict['product']['embedding'], self.relation_dict['product']['idxs'])
+			self.pw_scores, pw_vec = self.get_relation_scores(0.5, p_vec, 'word', 'word')
+			# Compute all information based on user
+			self.up_entity_list = [
+				('purchase', 'product', self.product_scores), ('write', 'word', self.uw_scores),
+			]
+			# Compute all information based on product
+			self.p_entity_list = [('write', 'word', self.pw_scores)]
+
+			if self.use_relation_dict['also_bought']:
+				# user + purchase + also_bought -> product
+				self.upab_scores, upab_vec = self.get_relation_scores(0.5, up_vec, 'also_bought', 'related_product')
+				self.up_entity_list.append(('also_bought', 'related_product', self.upab_scores))
+				# product + also_bought -> product
+				self.pab_scores, pab_vec = self.get_relation_scores(0.5, p_vec, 'also_bought', 'related_product')
+				self.p_entity_list.append(('also_bought', 'related_product', self.pab_scores))
+			
+			if self.use_relation_dict['also_viewed']:
+				# user + purchase + also_viewed -> product
+				self.upav_scores, upav_vec = self.get_relation_scores(0.5, up_vec, 'also_viewed', 'related_product')
+				self.up_entity_list.append(('also_viewed', 'related_product', self.upav_scores))
+				# product + also_viewed -> product
+				self.pav_scores, pav_vec = self.get_relation_scores(0.5, p_vec, 'also_viewed', 'related_product')
+				self.p_entity_list.append(('also_viewed', 'related_product', self.pav_scores))
+			
+			if self.use_relation_dict['bought_together']:
+				# user + purchase + bought_together -> product
+				self.upbt_scores, upbt_vec = self.get_relation_scores(0.5, up_vec, 'bought_together', 'related_product')
+				self.up_entity_list.append(('bought_together', 'related_product', self.upbt_scores))
+				# product + bought_together -> product
+				self.pbt_scores, pbt_vec = self.get_relation_scores(0.5, p_vec, 'bought_together', 'related_product')
+				self.p_entity_list.append(('bought_together', 'related_product', self.pbt_scores))
+			
+			if self.use_relation_dict['brand']:
+				# user + purchase + is_brand -> brand
+				self.upib_scores, upib_vec = self.get_relation_scores(0.5, up_vec, 'brand', 'brand')
+				self.up_entity_list.append(('brand', 'brand', self.upib_scores))
+				# product + is_brand -> brand
+				self.pib_scores, pib_vec = self.get_relation_scores(0.5, p_vec, 'brand', 'brand')
+				self.p_entity_list.append(('brand', 'brand', self.pib_scores))
+			
+			if self.use_relation_dict['categories']:
+				# user + purchase + is_category -> category
+				self.upic_scores, upic_vec = self.get_relation_scores(0.5, up_vec, 'categories', 'categories')
+				self.up_entity_list.append(('categories', 'categories', self.upic_scores))
+				# product + is_category -> category
+				self.pic_scores, pic_vec = self.get_relation_scores(0.5, p_vec, 'categories', 'categories')
+				self.p_entity_list.append(('categories', 'categories', self.pic_scores))
+			
 	
 		self.saver = tf.train.Saver(tf.global_variables())
 
-	def get_product_scores(self, user_idxs, product_idxs = None, scope=None):
+	def get_relation_scores(self, add_weight, head_vec, relation_name, tail_name, tail_idxs = None, scope = None):
 		with variable_scope.variable_scope(scope or "embedding_graph"):										
-			# get user embedding [None, embed_size]										
-			user_vec = tf.nn.embedding_lookup(self.entity_dict['user']['embedding'], user_idxs)
-			# get query embedding [None, embed_size]
-			purchase_vec = self.relation_dict['product']['embedding']
+			# get relation embedding [None, embed_size]
+			relation_vec = self.relation_dict[relation_name]['embedding']
+			relation_bias = self.relation_dict[relation_name]['bias']
 
 			# get candidate product embedding [None, embed_size]										
-			product_vec = None
-			product_bias = None
-			if product_idxs != None:										
-				product_vec = tf.nn.embedding_lookup(self.entity_dict['product']['embedding'], product_idxs)									
-				product_bias = tf.nn.embedding_lookup(self.relation_dict['product']['bias'], product_idxs)
+			tail_vec = None
+			tail_bias = None
+			if tail_idxs != None:										
+				tail_vec = tf.nn.embedding_lookup(self.entity_dict[tail_name]['embedding'], tail_idxs)									
+				tail_bias = tf.nn.embedding_lookup(relation_bias, tail_idxs)
 			else:										
-				product_vec = self.entity_dict['product']['embedding']
-				product_bias = self.relation_dict['product']['bias']							
-													
-			print('Similarity Function : ' + self.similarity_func)										
+				tail_vec = self.entity_dict[tail_name]['embedding']
+				tail_bias = relation_bias								
+									
+			#example_vec = (1.0 - add_weight) * head_vec + add_weight * relation_vec
+			example_vec = head_vec + relation_vec
 			
-			#example_vec = (1.0 - 0.5) * user_vec + 0.5 * purchase_vec
-			example_vec = user_vec + purchase_vec
 			if self.similarity_func == 'product':										
-				return tf.matmul(example_vec, product_vec, transpose_b=True)
+				return tf.matmul(example_vec, tail_vec, transpose_b=True), example_vec
 			elif self.similarity_func == 'bias_product':
-				return tf.matmul(example_vec, product_vec, transpose_b=True) + product_bias
-			else:					
-				example_vec = example_vec / tf.sqrt(tf.reduce_sum(tf.square(example_vec), 1, keep_dims=True))
-				product_vec = product_vec / tf.sqrt(tf.reduce_sum(tf.square(product_vec), 1, keep_dims=True))									
-				return tf.matmul(example_vec, product_vec, transpose_b=True)
+				return tf.matmul(example_vec, tail_vec, transpose_b=True) + tail_bias, example_vec
+			else:										
+				norm_vec = example_vec / tf.sqrt(tf.reduce_sum(tf.square(example_vec), 1, keep_dims=True))
+				tail_vec = tail_vec / tf.sqrt(tf.reduce_sum(tf.square(tail_vec), 1, keep_dims=True))									
+				return tf.matmul(norm_vec, tail_vec, transpose_b=True), example_vec
 				
 
 	def build_embedding_graph_and_loss(self, scope = None):
@@ -193,34 +274,39 @@ class MultiViewEmbedding_model(object):
 			loss += pw_loss
 
 			# product + also_bought -> product
-			pab_loss, pab_embs = relation_nce_loss(self, 0.5, self.relation_dict['product']['idxs'], 'product', 'also_bought', 'related_product')
-			regularization_terms.extend(pab_embs)
-			#pab_loss = tf.Print(pab_loss, [pab_loss], 'this is pab', summarize=5)
-			loss += pab_loss
+			if self.use_relation_dict['also_bought']:
+				pab_loss, pab_embs = relation_nce_loss(self, 0.5, self.relation_dict['product']['idxs'], 'product', 'also_bought', 'related_product')
+				regularization_terms.extend(pab_embs)
+				#pab_loss = tf.Print(pab_loss, [pab_loss], 'this is pab', summarize=5)
+				loss += pab_loss
 
 			# product + also_viewed -> product
-			pav_loss, pav_embs = relation_nce_loss(self, 0.5, self.relation_dict['product']['idxs'], 'product', 'also_viewed', 'related_product')
-			regularization_terms.extend(pav_embs)
-			#pav_loss = tf.Print(pav_loss, [pav_loss], 'this is pav', summarize=5)
-			loss += pav_loss
+			if self.use_relation_dict['also_viewed']:
+				pav_loss, pav_embs = relation_nce_loss(self, 0.5, self.relation_dict['product']['idxs'], 'product', 'also_viewed', 'related_product')
+				regularization_terms.extend(pav_embs)
+				#pav_loss = tf.Print(pav_loss, [pav_loss], 'this is pav', summarize=5)
+				loss += pav_loss
 
 			# product + bought_together -> product
-			pbt_loss, pbt_embs = relation_nce_loss(self, 0.5, self.relation_dict['product']['idxs'], 'product', 'bought_together', 'related_product')
-			regularization_terms.extend(pbt_embs)
-			#pbt_loss = tf.Print(pbt_loss, [pbt_loss], 'this is pbt', summarize=5)
-			loss += pbt_loss
+			if self.use_relation_dict['bought_together']:
+				pbt_loss, pbt_embs = relation_nce_loss(self, 0.5, self.relation_dict['product']['idxs'], 'product', 'bought_together', 'related_product')
+				regularization_terms.extend(pbt_embs)
+				#pbt_loss = tf.Print(pbt_loss, [pbt_loss], 'this is pbt', summarize=5)
+				loss += pbt_loss
 
 			# product + is_brand -> brand
-			pib_loss, pib_embs = relation_nce_loss(self, 0.5, self.relation_dict['product']['idxs'], 'product', 'brand', 'brand')
-			regularization_terms.extend(pib_embs)
-			#pib_loss = tf.Print(pib_loss, [pib_loss], 'this is pib', summarize=5)
-			loss += pib_loss
+			if self.use_relation_dict['brand']:
+				pib_loss, pib_embs = relation_nce_loss(self, 0.5, self.relation_dict['product']['idxs'], 'product', 'brand', 'brand')
+				regularization_terms.extend(pib_embs)
+				#pib_loss = tf.Print(pib_loss, [pib_loss], 'this is pib', summarize=5)
+				loss += pib_loss
 
 			# product + is_category -> categories
-			pic_loss, pic_embs = relation_nce_loss(self, 0.5, self.relation_dict['product']['idxs'], 'product', 'categories', 'categories')
-			regularization_terms.extend(pic_embs)
-			#pic_loss = tf.Print(pic_loss, [pic_loss], 'this is pic', summarize=5)
-			loss += pic_loss
+			if self.use_relation_dict['categories']:
+				pic_loss, pic_embs = relation_nce_loss(self, 0.5, self.relation_dict['product']['idxs'], 'product', 'categories', 'categories')
+				regularization_terms.extend(pic_embs)
+				#pic_loss = tf.Print(pic_loss, [pic_loss], 'this is pic', summarize=5)
+				loss += pic_loss
 
 			# product + is_image -> images
 			if self.need_image:
@@ -345,7 +431,12 @@ class MultiViewEmbedding_model(object):
 				for key in self.relation_dict:
 					self.embed_output_keys.append(key + '_bias')
 					output_feed.append(self.relation_dict[key]['bias'])
-				
+			elif 'explain' in test_mode:
+				if test_mode == 'explain_user_query':
+					entity_list = self.up_entity_list
+				elif test_mode == 'explain_product':
+					entity_list = self.p_entity_list
+				output_feed = [scores for _, _, scores in entity_list]
 			else:
 				output_feed = [self.product_scores] #negative instance output
 	
@@ -356,6 +447,8 @@ class MultiViewEmbedding_model(object):
 		else:
 			if test_mode == 'output_embedding':
 				return outputs, self.embed_output_keys
+			elif 'explain' in test_mode:
+				return [(entity_list[i][0], entity_list[i][1], outputs[i]) for i in xrange(len(entity_list))], None
 			else:
 				return outputs[0], None	# product scores to input user
 
