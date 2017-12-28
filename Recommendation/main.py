@@ -115,7 +115,7 @@ def train():
 	data_set.sub_sampling(FLAGS.subsampling_rate)
 
 	# add image features
-	data_set.read_image_features(FLAGS.data_dir)
+	#data_set.read_image_features(FLAGS.data_dir)
 
 	# add rating features
 	#data_set.read_latent_factor(FLAGS.data_dir)
@@ -191,7 +191,7 @@ def get_product_scores():
 	data_set = data_util.Tensorflow_data(FLAGS.data_dir, FLAGS.input_train_dir, 'test')
 	data_set.read_train_product_ids(FLAGS.input_train_dir)
 	# add image features
-	data_set.read_image_features(FLAGS.data_dir)
+	#data_set.read_image_features(FLAGS.data_dir)
 	# add rating features
 	#data_set.read_latent_factor(FLAGS.data_dir)
 
@@ -238,7 +238,7 @@ def output_embedding():
 	data_set = data_util.Tensorflow_data(FLAGS.data_dir,FLAGS.input_train_dir, 'test')
 	data_set.read_train_product_ids(FLAGS.input_train_dir)
 	# add image features
-	data_set.read_image_features(FLAGS.data_dir)
+	#data_set.read_image_features(FLAGS.data_dir)
 	# add rating features
 	#data_set.read_latent_factor(FLAGS.data_dir)
 
@@ -272,7 +272,7 @@ def interactive_explain_mode():
 	
 	data_set = data_util.Tensorflow_data(FLAGS.data_dir, FLAGS.input_train_dir, 'test')
 	data_set.read_train_product_ids(FLAGS.input_train_dir)
-	data_set.read_image_features(FLAGS.data_dir)
+	#data_set.read_image_features(FLAGS.data_dir)
 	current_step = 0
 	config = tf.ConfigProto()
 	config.gpu_options.allow_growth = True

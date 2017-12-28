@@ -68,7 +68,7 @@ class MultiViewEmbedding_model(object):
 
 		self.learning_rate = tf.placeholder(tf.float32, name="learning_rate")
 		init_width = 0.5 / self.embed_size
-		self.img_feature_num = data_set.img_feature_num
+		#self.img_feature_num = data_set.img_feature_num
 		#self.rate_factor_num = data_set.rate_factor_num
 		self.need_image = True if self.image_weight > 0 else False
 
@@ -107,7 +107,7 @@ class MultiViewEmbedding_model(object):
 		self.relation_dict = {
 			'product' : relation('purchase', data_set.product_distribute),
 			'word' : relation('write', data_set.vocab_distribute),
-			'image' : relation('has_image', data_set.product_distribute),
+			#'image' : relation('has_image', data_set.product_distribute),
 			'also_bought' : relation('also_bought', data_set.knowledge['also_bought']['distribute']),
 			'also_viewed' : relation('also_viewed', data_set.knowledge['also_viewed']['distribute']),
 			'bought_together' : relation('bought_together', data_set.knowledge['bought_together']['distribute']),
@@ -309,6 +309,7 @@ class MultiViewEmbedding_model(object):
 				loss += pic_loss
 
 			# product + is_image -> images
+			'''
 			if self.need_image:
 				self.img_product_features =	tf.constant(self.data_set.img_features, shape=[self.entity_dict['product']['size'], self.img_feature_num],
 										name="img_product_features")
@@ -316,6 +317,7 @@ class MultiViewEmbedding_model(object):
 				regularization_terms.extend(pii_embs)
 				#pii_loss = tf.Print(pii_loss, [pii_loss], 'this is pii', summarize=5)
 				loss += pii_loss
+			'''
 
 			# L2 regularization
 			if self.L2_lambda > 0:
@@ -531,8 +533,8 @@ class MultiViewEmbedding_model(object):
 		input_feed[self.user_idxs.name] = user_idxs
 		input_feed[self.relation_dict['product']['idxs'].name] = product_idxs
 		input_feed[self.relation_dict['product']['weight'].name] = [1.0 for _ in xrange(len(product_idxs))]
-		input_feed[self.relation_dict['image']['idxs'].name] = product_idxs
-		input_feed[self.relation_dict['image']['weight'].name] = [1.0 for _ in xrange(len(product_idxs))]
+		#input_feed[self.relation_dict['image']['idxs'].name] = product_idxs
+		#input_feed[self.relation_dict['image']['weight'].name] = [1.0 for _ in xrange(len(product_idxs))]
 		input_feed[self.relation_dict['word']['idxs'].name] = word_idxs
 		input_feed[self.relation_dict['word']['weight'].name] = [1.0 for _ in xrange(len(word_idxs))]
 		for key in knowledge_idxs_dict:
@@ -593,8 +595,8 @@ class MultiViewEmbedding_model(object):
 		input_feed[self.user_idxs.name] = user_idxs
 		input_feed[self.relation_dict['product']['idxs'].name] = product_idxs
 		input_feed[self.relation_dict['product']['weight'].name] = [1.0 for _ in xrange(len(product_idxs))]
-		input_feed[self.relation_dict['image']['idxs'].name] = product_idxs
-		input_feed[self.relation_dict['image']['weight'].name] = [1.0 for _ in xrange(len(product_idxs))]
+		#input_feed[self.relation_dict['image']['idxs'].name] = product_idxs
+		#input_feed[self.relation_dict['image']['weight'].name] = [1.0 for _ in xrange(len(product_idxs))]
 		input_feed[self.relation_dict['word']['idxs'].name] = word_idxs
 		input_feed[self.relation_dict['word']['weight'].name] = [1.0 for _ in xrange(len(word_idxs))]
 		for key in knowledge_idxs_dict:
