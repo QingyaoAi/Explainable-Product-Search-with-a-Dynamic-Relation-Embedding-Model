@@ -70,6 +70,7 @@ class MultiViewEmbedding_model(object):
 		init_width = 0.5 / self.embed_size
 		self.img_feature_num = data_set.img_feature_num
 		#self.rate_factor_num = data_set.rate_factor_num
+		self.need_image = True if self.image_weight > 0 else False
 
 		def entity(name, vocab):
 			print('%s size %s' % (name,str(len(vocab))))
@@ -155,12 +156,13 @@ class MultiViewEmbedding_model(object):
 													
 			print('Similarity Function : ' + self.similarity_func)										
 			
+			#example_vec = (1.0 - 0.5) * user_vec + 0.5 * purchase_vec
+			example_vec = user_vec + purchase_vec
 			if self.similarity_func == 'product':										
-				return tf.matmul((1.0 - 0.5) * user_vec + 0.5 * purchase_vec, product_vec, transpose_b=True)
+				return tf.matmul(example_vec, product_vec, transpose_b=True)
 			elif self.similarity_func == 'bias_product':
-				return tf.matmul((1.0 - 0.5) * user_vec + 0.5 * purchase_vec, product_vec, transpose_b=True) + product_bias
+				return tf.matmul(example_vec, product_vec, transpose_b=True) + product_bias
 			else:					
-				example_vec = (1.0 - 0.5) * user_vec + 0.5 * purchase_vec					
 				example_vec = example_vec / tf.sqrt(tf.reduce_sum(tf.square(example_vec), 1, keep_dims=True))
 				product_vec = product_vec / tf.sqrt(tf.reduce_sum(tf.square(product_vec), 1, keep_dims=True))									
 				return tf.matmul(example_vec, product_vec, transpose_b=True)
@@ -221,12 +223,13 @@ class MultiViewEmbedding_model(object):
 			loss += pic_loss
 
 			# product + is_image -> images
-			self.img_product_features =	tf.constant(self.data_set.img_features, shape=[self.entity_dict['product']['size'], self.img_feature_num],
-									name="img_product_features")
-			pii_loss, pii_embs = self.image_nce_loss(0.5, self.relation_dict['product']['idxs'], 'product')
-			regularization_terms.extend(pii_embs)
-			#pii_loss = tf.Print(pii_loss, [pii_loss], 'this is pii', summarize=5)
-			loss += pii_loss
+			if self.need_image:
+				self.img_product_features =	tf.constant(self.data_set.img_features, shape=[self.entity_dict['product']['size'], self.img_feature_num],
+										name="img_product_features")
+				pii_loss, pii_embs = self.image_nce_loss(0.5, self.relation_dict['product']['idxs'], 'product')
+				regularization_terms.extend(pii_embs)
+				#pii_loss = tf.Print(pii_loss, [pii_loss], 'this is pii', summarize=5)
+				loss += pii_loss
 
 			# L2 regularization
 			if self.L2_lambda > 0:
@@ -538,7 +541,8 @@ def pair_search_loss(model, add_weight, relation_vec, example_idxs, example_emb,
 			unigrams=label_distribution))								
 											
 	#get example embeddings [batch_size, embed_size]
-	example_vec = tf.nn.embedding_lookup(example_emb, example_idxs) * (1-add_weight) + relation_vec * add_weight							
+	#example_vec = tf.nn.embedding_lookup(example_emb, example_idxs) * (1-add_weight) + relation_vec * add_weight							
+	example_vec = tf.nn.embedding_lookup(example_emb, example_idxs) + relation_vec
 											
 	#get label embeddings and bias [batch_size, embed_size], [batch_size, 1]										
 	true_w = tf.nn.embedding_lookup(label_emb, label_idxs)										
