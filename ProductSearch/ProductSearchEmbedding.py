@@ -93,9 +93,11 @@ class ProductSearchEmbedding_model(object):
 
 		self.user_idxs = tf.placeholder(tf.int64, shape=[None], name="user_idxs")
 		self.product_idxs = tf.placeholder(tf.int64, shape=[None], name="product_idxs")
-		def relation(name, distribute):
+		def relation(name, distribute, tail_entity):
 			print('%s size %s' % (name, str(len(distribute))))
 			return {
+				'name' : name,
+				'tail_entity' : tail_entity,
 				'distribute' : distribute,
 				'idxs' : tf.placeholder(tf.int64, shape=[None], name="%s_idxs"%name),
 				'weight' : 	tf.placeholder(tf.float32, shape=[None], name="%s_weight"%name),
@@ -105,13 +107,36 @@ class ProductSearchEmbedding_model(object):
 				'bias' : tf.Variable(tf.zeros([len(distribute)]), name="%s_b"%name)	
 			}
 		self.relation_dict = {
-			'word' : relation('write', data_set.vocab_distribute),
-			'also_bought' : relation('also_bought', data_set.knowledge['also_bought']['distribute']),
-			'also_viewed' : relation('also_viewed', data_set.knowledge['also_viewed']['distribute']),
-			'bought_together' : relation('bought_together', data_set.knowledge['bought_together']['distribute']),
-			'brand' : relation('is_brand', data_set.knowledge['brand']['distribute']),
-			'categories' : relation('is_category', data_set.knowledge['categories']['distribute'])
+			'word' : relation('write', data_set.vocab_distribute, 'word'),
+			'also_bought' : relation('also_bought', data_set.knowledge['also_bought']['distribute'], 'related_product'),
+			'also_viewed' : relation('also_viewed', data_set.knowledge['also_viewed']['distribute'], 'related_product'),
+			'bought_together' : relation('bought_together', data_set.knowledge['bought_together']['distribute'], 'related_product'),
+			'brand' : relation('is_brand', data_set.knowledge['brand']['distribute'], 'brand'),
+			'categories' : relation('is_category', data_set.knowledge['categories']['distribute'], 'categories')
 		}
+
+		# Select which relation to use
+		self.use_relation_dict = {
+			'also_bought' : False,
+			'also_viewed' : False,
+			'bought_together' : False,
+			'brand' : False,
+			'categories' : False,
+		}
+		if 'none' in self.net_struct:
+			print('Use no relation')
+		else:
+			need_relation_list = []
+			for key in self.use_relation_dict:
+				if key in self.net_struct:
+					self.use_relation_dict[key] = True
+					need_relation_list.append(key)
+			if len(need_relation_list) > 0:
+				print('Use relation ' + ' '.join(need_relation_list))
+			else:
+				print('Use all relation')
+				for key in self.use_relation_dict:
+					self.use_relation_dict[key] = True
 
 		print('L2 lambda ' + str(self.L2_lambda))
 
@@ -140,6 +165,16 @@ class ProductSearchEmbedding_model(object):
 			self.uw_scores, uw_vec = PersonalizedEmbedding.get_relation_scores(self, 0.5, user_vec, 'word', 'word')
 			# user + query + write -> word
 			self.uqw_scores, uqw_vec = PersonalizedEmbedding.get_relation_scores(self, 0.5, uq_vec, 'word', 'word')
+			# Compute all information based on user + query
+			self.uq_entity_list = [
+				('search', 'product', self.product_scores), ('write', 'word', self.uw_scores),
+			]
+			for key in self.use_relation_dict:
+				if self.use_relation_dict[key]:
+					tail_entity = self.relation_dict[key]['tail_entity']
+					scores, vec = PersonalizedEmbedding.get_relation_scores(self, 0.5, uq_vec, key, tail_entity)
+					self.uq_entity_list.append((key, tail_entity, scores))
+			'''
 			# user + query + also_bought -> product
 			self.uqab_scores, uqab_vec = PersonalizedEmbedding.get_relation_scores(self, 0.5, uq_vec, 'also_bought', 'related_product')
 			# user + query + also_viewed -> product
@@ -150,19 +185,21 @@ class ProductSearchEmbedding_model(object):
 			self.uqib_scores, uqib_vec = PersonalizedEmbedding.get_relation_scores(self, 0.5, uq_vec, 'brand', 'brand')
 			# user + query + is_category -> category
 			self.uqic_scores, uqic_vec = PersonalizedEmbedding.get_relation_scores(self, 0.5, uq_vec, 'categories', 'categories')
-			self.uq_entity_list = [
-				('search', 'product', self.product_scores), ('write', 'word', self.uw_scores),
-				('also_bought', 'related_product', self.uqab_scores), 
-				('also_viewed', 'related_product', self.uqav_scores),
-				('bought_together', 'related_product', self.uqbt_scores),
-				('brand', 'brand', self.uqib_scores),
-				('categories', 'categories', self.uqic_scores),
-			]
+			'''
 			
 			# Compute all information based on product
 			# product + write -> word
 			p_vec = tf.nn.embedding_lookup(self.entity_dict['product']['embedding'], self.product_idxs)
 			self.pw_scores, pw_vec = PersonalizedEmbedding.get_relation_scores(self, 0.5, p_vec, 'word', 'word')
+			self.p_entity_list = [
+				('write', 'word', self.pw_scores),
+			]
+			for key in self.use_relation_dict:
+				if self.use_relation_dict[key]:
+					tail_entity = self.relation_dict[key]['tail_entity']
+					scores, vec = PersonalizedEmbedding.get_relation_scores(self, 0.5, p_vec, key, tail_entity)
+					self.p_entity_list.append((key, tail_entity, scores))
+			'''
 			# product + also_bought -> product
 			self.pab_scores, pab_vec = PersonalizedEmbedding.get_relation_scores(self, 0.5, p_vec, 'also_bought', 'related_product')
 			# product + also_viewed -> product
@@ -173,14 +210,8 @@ class ProductSearchEmbedding_model(object):
 			self.pib_scores, pib_vec = PersonalizedEmbedding.get_relation_scores(self, 0.5, p_vec, 'brand', 'brand')
 			# product + is_category -> category
 			self.pic_scores, pic_vec = PersonalizedEmbedding.get_relation_scores(self, 0.5, p_vec, 'categories', 'categories')
-			self.p_entity_list = [
-				('write', 'word', self.pw_scores),
-				('also_bought', 'related_product', self.pab_scores), 
-				('also_viewed', 'related_product', self.pav_scores),
-				('bought_together', 'related_product', self.pbt_scores),
-				('brand', 'brand', self.pib_scores),
-				('categories', 'categories', self.pic_scores),
-			]
+			'''
+			
 	
 		self.saver = tf.train.Saver(tf.global_variables())
 	

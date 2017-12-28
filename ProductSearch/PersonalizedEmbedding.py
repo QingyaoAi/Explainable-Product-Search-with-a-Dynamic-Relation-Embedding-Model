@@ -114,6 +114,7 @@ def get_attention_from_words(model, word_vecs, reuse, scope=None):
 										 reuse=reuse,
 										 initializer=tf.truncated_normal_initializer(mean=0.0, stddev=1.0, seed=None, dtype=tf.float32)):
 		# build mask
+		word_idxs = model.relation_dict['word']['idxs']
 		mask = tf.maximum(tf.cast(word_idxs, tf.float32) + 1.0, 1.0) # [batch,query_max_length]
 		# softmax weight
 		#print(word_idxs.get_shape())
