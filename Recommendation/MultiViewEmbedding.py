@@ -117,6 +117,7 @@ class MultiViewEmbedding_model(object):
 
 		# Select which relation to use
 		self.use_relation_dict = {
+			'word' : False,
 			'also_bought' : False,
 			'also_viewed' : False,
 			'bought_together' : False,
@@ -163,19 +164,25 @@ class MultiViewEmbedding_model(object):
 			# user + purchase -> word
 			user_vec = tf.nn.embedding_lookup(self.entity_dict['user']['embedding'], self.user_idxs)
 			self.product_scores, up_vec = self.get_relation_scores(0.5, user_vec, 'product', 'product')
-			# user + write -> word
-			self.uw_scores, uw_vec = self.get_relation_scores(0.5, user_vec, 'word', 'word')
-			# user + purchase + write -> word
-			self.upw_scores, upw_vec = self.get_relation_scores(0.5, up_vec, 'word', 'word')
-			# product + write -> word
-			p_vec = tf.nn.embedding_lookup(self.entity_dict['product']['embedding'], self.relation_dict['product']['idxs'])
-			self.pw_scores, pw_vec = self.get_relation_scores(0.5, p_vec, 'word', 'word')
 			# Compute all information based on user
 			self.up_entity_list = [
-				('purchase', 'product', self.product_scores), ('write', 'word', self.uw_scores),
+				('purchase', 'product', self.product_scores), ,
 			]
 			# Compute all information based on product
-			self.p_entity_list = [('write', 'word', self.pw_scores)]
+			self.p_entity_list = []
+
+			if self.use_relation_dict['word']:
+				# user + write -> word
+				self.uw_scores, uw_vec = self.get_relation_scores(0.5, user_vec, 'word', 'word')
+				# user + purchase + write -> word
+				self.upw_scores, upw_vec = self.get_relation_scores(0.5, up_vec, 'word', 'word')
+				self.up_entity_list.append(('write', 'word', self.uw_scores))
+				self.up_entity_list.append(('purchase+write', 'word', self.upw_scores))
+				# product + write -> word
+				p_vec = tf.nn.embedding_lookup(self.entity_dict['product']['embedding'], self.relation_dict['product']['idxs'])
+				self.pw_scores, pw_vec = self.get_relation_scores(0.5, p_vec, 'word', 'word')
+				self.p_entity_list.append(('write', 'word', self.pw_scores))
+			
 
 			if self.use_relation_dict['also_bought']:
 				# user + purchase + also_bought -> product
@@ -261,17 +268,18 @@ class MultiViewEmbedding_model(object):
 			#up_loss = tf.Print(up_loss, [up_loss], 'this is up', summarize=5)
 			loss = up_loss
 
-			# user + write -> word
-			uw_loss, uw_embs = relation_nce_loss(self, 0.5, self.user_idxs, 'user', 'word', 'word')
-			regularization_terms.extend(uw_embs)
-			#uw_loss = tf.Print(uw_loss, [uw_loss], 'this is uw', summarize=5)
-			loss += uw_loss
+			if self.use_relation_dict['word']:
+				# user + write -> word
+				uw_loss, uw_embs = relation_nce_loss(self, 0.5, self.user_idxs, 'user', 'word', 'word')
+				regularization_terms.extend(uw_embs)
+				#uw_loss = tf.Print(uw_loss, [uw_loss], 'this is uw', summarize=5)
+				loss += uw_loss
 
-			# product + write -> word
-			pw_loss, pw_embs = relation_nce_loss(self, 0.5, self.relation_dict['product']['idxs'], 'product', 'word', 'word')
-			regularization_terms.extend(pw_embs)
-			#pw_loss = tf.Print(pw_loss, [pw_loss], 'this is pw', summarize=5)
-			loss += pw_loss
+				# product + write -> word
+				pw_loss, pw_embs = relation_nce_loss(self, 0.5, self.relation_dict['product']['idxs'], 'product', 'word', 'word')
+				regularization_terms.extend(pw_embs)
+				#pw_loss = tf.Print(pw_loss, [pw_loss], 'this is pw', summarize=5)
+				loss += pw_loss
 
 			# product + also_bought -> product
 			if self.use_relation_dict['also_bought']:
