@@ -280,7 +280,7 @@ def interactive_explain_mode():
 					'product' : data_set.user_train_product_set_list[user_idx]
 				}
 				print('User %d %s' % (user_idx, data_set.user_ids[user_idx]))
-				print('Query %d %s' % (query_idx, '_'.join([data_set.words[x] for x in query_word_idx])))
+				print('Query %d %s' % (query_idx, '_'.join([data_set.words[x] for x in query_word_idx if x > -1])))
 				# output results
 				for relation_name, entity_name, entity_scores in uq_entity_list:
 					data_set.print_entity_list(relation_name, entity_name, entity_scores[0], rank_cut, remove_map)
