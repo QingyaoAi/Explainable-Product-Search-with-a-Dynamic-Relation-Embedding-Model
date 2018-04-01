@@ -166,10 +166,11 @@ class MultiViewEmbedding_model(object):
 			self.product_scores, up_vec = self.get_relation_scores(0.5, user_vec, 'product', 'product')
 			# Compute all information based on user
 			self.up_entity_list = [
-				('purchase', 'product', self.product_scores), ,
+				('purchase', 'product', self.product_scores)
 			]
 			# Compute all information based on product
 			self.p_entity_list = []
+			p_vec = tf.nn.embedding_lookup(self.entity_dict['product']['embedding'], self.relation_dict['product']['idxs'])
 
 			if self.use_relation_dict['word']:
 				# user + write -> word
@@ -179,7 +180,6 @@ class MultiViewEmbedding_model(object):
 				self.up_entity_list.append(('write', 'word', self.uw_scores))
 				self.up_entity_list.append(('purchase+write', 'word', self.upw_scores))
 				# product + write -> word
-				p_vec = tf.nn.embedding_lookup(self.entity_dict['product']['embedding'], self.relation_dict['product']['idxs'])
 				self.pw_scores, pw_vec = self.get_relation_scores(0.5, p_vec, 'word', 'word')
 				self.p_entity_list.append(('write', 'word', self.pw_scores))
 			
