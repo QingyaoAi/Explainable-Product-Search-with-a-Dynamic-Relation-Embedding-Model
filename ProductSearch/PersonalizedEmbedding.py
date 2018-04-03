@@ -74,10 +74,14 @@ def get_relation_scores(model, add_weight, head_vec, relation_name, tail_name, t
 		#example_vec = (1.0 - add_weight) * head_vec + add_weight * relation_vec
 		example_vec = head_vec + relation_vec
 		
-		if model.similarity_func == 'product':										
-			return tf.matmul(example_vec, tail_vec, transpose_b=True), example_vec
+		if model.similarity_func == 'product':
+			mat = tf.exp(tf.matmul(example_vec, tail_vec, transpose_b=True))
+			return mat / tf.reduce_sum(mat,1,keep_dims=True), example_vec									
+			#return tf.matmul(example_vec, tail_vec, transpose_b=True), example_vec
 		elif model.similarity_func == 'bias_product':
-			return tf.matmul(example_vec, tail_vec, transpose_b=True) + tail_bias, example_vec
+			mat = tf.exp(tf.matmul(example_vec, tail_vec, transpose_b=True) + tail_bias)
+			return mat / tf.reduce_sum(mat,1,keep_dims=True), example_vec
+			#return tf.matmul(example_vec, tail_vec, transpose_b=True) + tail_bias, example_vec
 		else:										
 			norm_vec = example_vec / tf.sqrt(tf.reduce_sum(tf.square(example_vec), 1, keep_dims=True))
 			tail_vec = tail_vec / tf.sqrt(tf.reduce_sum(tf.square(tail_vec), 1, keep_dims=True))									

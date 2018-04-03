@@ -247,9 +247,13 @@ class MultiViewEmbedding_model(object):
 			example_vec = head_vec + relation_vec
 			
 			if self.similarity_func == 'product':										
-				return tf.matmul(example_vec, tail_vec, transpose_b=True), example_vec
+				mat = tf.exp(tf.matmul(example_vec, tail_vec, transpose_b=True))
+				return mat / tf.reduce_sum(mat,1,keep_dims=True), example_vec
+				#return tf.matmul(example_vec, tail_vec, transpose_b=True), example_vec
 			elif self.similarity_func == 'bias_product':
-				return tf.matmul(example_vec, tail_vec, transpose_b=True) + tail_bias, example_vec
+				mat = tf.exp(tf.matmul(example_vec, tail_vec, transpose_b=True) + tail_bias)
+				return mat / tf.reduce_sum(mat,1,keep_dims=True), example_vec
+				#return tf.matmul(example_vec, tail_vec, transpose_b=True) + tail_bias, example_vec
 			else:										
 				norm_vec = example_vec / tf.sqrt(tf.reduce_sum(tf.square(example_vec), 1, keep_dims=True))
 				tail_vec = tail_vec / tf.sqrt(tf.reduce_sum(tf.square(tail_vec), 1, keep_dims=True))									
