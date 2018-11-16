@@ -167,7 +167,7 @@ class ProductSearchEmbedding_model(object):
 			self.uqw_scores, uqw_vec = PersonalizedEmbedding.get_relation_scores(self, 0.5, uq_vec, 'word', 'word')
 			# Compute all information based on user + query
 			self.uq_entity_list = [
-				('search', 'product', self.product_scores), ('write', 'word', self.uw_scores), ('write_based_on_query', 'word', self.uqw_scores)
+				('search', 'product', self.product_scores), ('write', 'word', self.uw_scores),
 			]
 			for key in self.use_relation_dict:
 				if self.use_relation_dict[key]:

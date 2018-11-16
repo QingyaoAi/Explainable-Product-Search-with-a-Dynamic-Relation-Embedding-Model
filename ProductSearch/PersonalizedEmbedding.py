@@ -74,14 +74,10 @@ def get_relation_scores(model, add_weight, head_vec, relation_name, tail_name, t
 		#example_vec = (1.0 - add_weight) * head_vec + add_weight * relation_vec
 		example_vec = head_vec + relation_vec
 		
-		if model.similarity_func == 'product':
-			mat = tf.exp(tf.matmul(example_vec, tail_vec, transpose_b=True))
-			return mat / tf.reduce_sum(mat,1,keep_dims=True), example_vec									
-			#return tf.matmul(example_vec, tail_vec, transpose_b=True), example_vec
+		if model.similarity_func == 'product':										
+			return tf.matmul(example_vec, tail_vec, transpose_b=True), example_vec
 		elif model.similarity_func == 'bias_product':
-			mat = tf.exp(tf.matmul(example_vec, tail_vec, transpose_b=True) + tail_bias)
-			return mat / tf.reduce_sum(mat,1,keep_dims=True), example_vec
-			#return tf.matmul(example_vec, tail_vec, transpose_b=True) + tail_bias, example_vec
+			return tf.matmul(example_vec, tail_vec, transpose_b=True) + tail_bias, example_vec
 		else:										
 			norm_vec = example_vec / tf.sqrt(tf.reduce_sum(tf.square(example_vec), 1, keep_dims=True))
 			tail_vec = tail_vec / tf.sqrt(tf.reduce_sum(tf.square(tail_vec), 1, keep_dims=True))									
@@ -176,34 +172,39 @@ def build_graph_and_loss(model, scope = None):
 		loss += pw_loss
 
 		# product + also_bought -> product
-		pab_loss, pab_embs = relation_nce_loss(model, 0.5, model.product_idxs, 'product', 'also_bought', 'related_product')
-		regularization_terms.extend(pab_embs)
-		#pab_loss = tf.Print(pab_loss, [pab_loss], 'this is pab', summarize=5)
-		loss += pab_loss
+		if model.use_relation_dict['also_bought']:
+			pab_loss, pab_embs = relation_nce_loss(model, 0.5, model.product_idxs, 'product', 'also_bought', 'related_product')
+			regularization_terms.extend(pab_embs)
+			#pab_loss = tf.Print(pab_loss, [pab_loss], 'this is pab', summarize=5)
+			loss += pab_loss
 
 		# product + also_viewed -> product
-		pav_loss, pav_embs = relation_nce_loss(model, 0.5, model.product_idxs, 'product', 'also_viewed', 'related_product')
-		regularization_terms.extend(pav_embs)
-		#pav_loss = tf.Print(pav_loss, [pav_loss], 'this is pav', summarize=5)
-		loss += pav_loss
+		if model.use_relation_dict['also_viewed']:
+			pav_loss, pav_embs = relation_nce_loss(model, 0.5, model.product_idxs, 'product', 'also_viewed', 'related_product')
+			regularization_terms.extend(pav_embs)
+			#pav_loss = tf.Print(pav_loss, [pav_loss], 'this is pav', summarize=5)
+			loss += pav_loss
 
 		# product + bought_together -> product
-		pbt_loss, pbt_embs = relation_nce_loss(model, 0.5, model.product_idxs, 'product', 'bought_together', 'related_product')
-		regularization_terms.extend(pbt_embs)
-		#pbt_loss = tf.Print(pbt_loss, [pbt_loss], 'this is pbt', summarize=5)
-		loss += pbt_loss
+		if model.use_relation_dict['bought_together']:
+			pbt_loss, pbt_embs = relation_nce_loss(model, 0.5, model.product_idxs, 'product', 'bought_together', 'related_product')
+			regularization_terms.extend(pbt_embs)
+			#pbt_loss = tf.Print(pbt_loss, [pbt_loss], 'this is pbt', summarize=5)
+			loss += pbt_loss
 
 		# product + is_brand -> brand
-		pib_loss, pib_embs = relation_nce_loss(model, 0.5, model.product_idxs, 'product', 'brand', 'brand')
-		regularization_terms.extend(pib_embs)
-		#pib_loss = tf.Print(pib_loss, [pib_loss], 'this is pib', summarize=5)
-		loss += pib_loss
+		if model.use_relation_dict['brand']:
+			pib_loss, pib_embs = relation_nce_loss(model, 0.5, model.product_idxs, 'product', 'brand', 'brand')
+			regularization_terms.extend(pib_embs)
+			#pib_loss = tf.Print(pib_loss, [pib_loss], 'this is pib', summarize=5)
+			loss += pib_loss
 
 		# product + is_category -> categories
-		pic_loss, pic_embs = relation_nce_loss(model, 0.5, model.product_idxs, 'product', 'categories', 'categories')
-		regularization_terms.extend(pic_embs)
-		#pic_loss = tf.Print(pic_loss, [pw_loss], 'this is pic', summarize=5)
-		loss += pic_loss
+		if model.use_relation_dict['categories']:
+			pic_loss, pic_embs = relation_nce_loss(model, 0.5, model.product_idxs, 'product', 'categories', 'categories')
+			regularization_terms.extend(pic_embs)
+			#pic_loss = tf.Print(pic_loss, [pw_loss], 'this is pic', summarize=5)
+			loss += pic_loss
 
 		# L2 regularization
 		if model.L2_lambda > 0:

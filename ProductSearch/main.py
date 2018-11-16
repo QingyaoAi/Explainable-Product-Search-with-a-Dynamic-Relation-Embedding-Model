@@ -70,11 +70,8 @@ def create_model(session, forward_only, data_set, review_size):
 			FLAGS.similarity_func, forward_only, FLAGS.negative_sample)
 	ckpt = tf.train.get_checkpoint_state(FLAGS.train_dir)
 	if ckpt:
-		ckpt_file = FLAGS.train_dir + ckpt.model_checkpoint_path.split('/')[-1]
-		#print("Reading model parameters from %s" % ckpt.model_checkpoint_path)
-		#model.saver.restore(session, ckpt.model_checkpoint_path)
-		print("Reading model parameters from %s" % ckpt_file)
-		model.saver.restore(session, ckpt_file)
+		print("Reading model parameters from %s" % ckpt.model_checkpoint_path)
+		model.saver.restore(session, ckpt.model_checkpoint_path)
 	else:
 		print("Created model with fresh parameters.")
 		session.run(tf.global_variables_initializer())
@@ -255,11 +252,11 @@ def interactive_explain_mode():
 			test_feed = copy.deepcopy(input_feed)
 			print('Enter rank cut:')
 			rank_cut = int(sys.stdin.readline().strip())
-			print('Enter mode, "product" for gathering product information and "user" for gathering user+query information:')
+			print('Enter mode:')
 			mode = sys.stdin.readline().strip()
 			# Output user+query or product?
 			if mode == 'product': # product
-				print('Enter product idx (line number start from 0) or name ("asin"):')
+				print('Enter product idx or name:')
 				product_idx = data_set.get_idx(sys.stdin.readline().strip(), 'product')
 				test_feed[model.product_idxs.name] = [product_idx]
 				p_entity_list, _ = model.step(sess, test_feed, True, 'explain_product')
@@ -268,9 +265,9 @@ def interactive_explain_mode():
 				for relation_name, entity_name, entity_scores in p_entity_list:
 					data_set.print_entity_list(relation_name, entity_name, entity_scores[0], rank_cut, {})
 			else: # user + query
-				print('Enter user idx (line number start from 0) or name (user id):')
+				print('Enter user idx or name:')
 				user_idx = data_set.get_idx(sys.stdin.readline().strip(), 'user')
-				print('Enter query idx (line_number start from 0):')
+				print('Enter query idx:')
 				query_idx = int(sys.stdin.readline().strip())
 				query_word_idx = model.data_set.query_words[query_idx]
 				test_feed[model.user_idxs.name] = [user_idx]
@@ -280,7 +277,7 @@ def interactive_explain_mode():
 					'product' : data_set.user_train_product_set_list[user_idx]
 				}
 				print('User %d %s' % (user_idx, data_set.user_ids[user_idx]))
-				print('Query %d %s' % (query_idx, '_'.join([data_set.words[x] for x in query_word_idx if x > -1])))
+				print('Query %d %s' % (query_idx, '_'.join([data_set.words[x] for x in query_word_idx])))
 				# output results
 				for relation_name, entity_name, entity_scores in uq_entity_list:
 					data_set.print_entity_list(relation_name, entity_name, entity_scores[0], rank_cut, remove_map)

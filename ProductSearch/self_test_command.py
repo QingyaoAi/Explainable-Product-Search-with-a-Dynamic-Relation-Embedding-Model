@@ -12,7 +12,7 @@ INPUT_TRAIN_DIR = DATA_PATH + 'query_split/'
 command += ' --input_train_dir ' + INPUT_TRAIN_DIR
 
 command += ' --learning_rate 0.5'
-command += ' --net_struct brand_fs'
+command += ' --net_struct simplified_RNN_pv'
 command += ' --L2_lambda 0.00'
 command += ' --query_weight -1'
 command += ' --steps_per_checkpoint 100'
@@ -33,8 +33,5 @@ os.system(command)
 print(command + ' --decode true' + ' --test_mode output_embedding')
 os.system(command + ' --decode true' + ' --test_mode output_embedding')
 
-print(command + ' --decode true' + ' --test_mode product_scores' + ' --similarity_func bias_product')
+print(command + ' --decode true' + ' --test_mode product_scores' + ' --similarity_func product')
 os.system(command + ' --decode true' + ' --test_mode product_scores' + ' --similarity_func bias_product')
-
-print(command + ' --decode true' + ' --test_mode explain')
-os.system(command + ' --decode true' + ' --test_mode explain')
