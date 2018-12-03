@@ -30,7 +30,12 @@ def get_product_scores(model, user_idxs, query_word_idx, product_idxs = None, sc
 		# get user embedding [None, embed_size]										
 		user_vec = tf.nn.embedding_lookup(model.entity_dict['user']['embedding'], user_idxs)
 		# get query embedding [None, embed_size]
-		query_vec, query_embs = get_query_embedding(model, query_word_idx, model.entity_dict['word']['embedding'], True)
+		if model.dynamic_weight >= 0.0:
+			print('Query as a dynamic relationship')
+			query_vec, query_embs = get_query_embedding(model, query_word_idx, model.entity_dict['word']['embedding'], True)
+		else:
+			print('Query as a static relationship')
+			query_vec = model.query_static_vec
 
 		# get candidate product embedding [None, embed_size]										
 		product_vec = None
@@ -148,8 +153,18 @@ def build_graph_and_loss(model, scope = None):
 		regularization_terms = []
 		batch_size = array_ops.shape(model.user_idxs)[0]#get batch_size	
 		# user + query -> product
-		query_vec, qw_embs = get_query_embedding(model, model.query_word_idxs, model.entity_dict['word']['embedding'], None) # get query vector
-		regularization_terms.extend(qw_embs)						
+		query_vec = None
+		if model.dynamic_weight >= 0.0:
+			print('Treat query as a dynamic relationship')
+			query_vec, qw_embs = get_query_embedding(model, model.query_word_idxs, model.entity_dict['word']['embedding'], None) # get query vector
+			regularization_terms.extend(qw_embs)
+		else:
+			print('Treat query as a static relationship')
+			init_width = 0.5 / model.embed_size
+			model.query_static_vec = tf.Variable(tf.random_uniform([model.embed_size], -init_width, init_width),				
+								name="query_emb")
+			query_vec = model.query_static_vec
+			regularization_terms.extend([query_vec])
 		model.product_bias = tf.Variable(tf.zeros([model.entity_dict['product']['size']]), name="product_b")
 		uqr_loss, uqr_embs = pair_search_loss(model, model.Wu, query_vec, model.user_idxs, # product prediction loss
 							model.entity_dict['user']['embedding'], model.product_idxs, 
@@ -157,54 +172,64 @@ def build_graph_and_loss(model, scope = None):
 							len(model.entity_dict['product']['vocab']), model.data_set.product_distribute) 			
 		regularization_terms.extend(uqr_embs)
 		#uqr_loss = tf.Print(uqr_loss, [uqr_loss], 'this is uqr', summarize=5)
-		loss = tf.reduce_sum(uqr_loss)
+		dynamic_loss = tf.reduce_sum(uqr_loss)
 
 		# user + write -> word
 		uw_loss, uw_embs = relation_nce_loss(model, 0.5, model.user_idxs, 'user', 'word', 'word')
 		regularization_terms.extend(uw_embs)
 		#uw_loss = tf.Print(uw_loss, [uw_loss], 'this is uw', summarize=5)
-		loss += uw_loss
+
+		static_loss = uw_loss
 
 		# product + write -> word
 		pw_loss, pw_embs = relation_nce_loss(model, 0.5, model.product_idxs, 'product', 'word', 'word')
 		regularization_terms.extend(pw_embs)
 		#pw_loss = tf.Print(pw_loss, [pw_loss], 'this is pw', summarize=5)
-		loss += pw_loss
+		static_loss += pw_loss
 
 		# product + also_bought -> product
 		if model.use_relation_dict['also_bought']:
 			pab_loss, pab_embs = relation_nce_loss(model, 0.5, model.product_idxs, 'product', 'also_bought', 'related_product')
 			regularization_terms.extend(pab_embs)
 			#pab_loss = tf.Print(pab_loss, [pab_loss], 'this is pab', summarize=5)
-			loss += pab_loss
+			static_loss += pab_loss
 
 		# product + also_viewed -> product
 		if model.use_relation_dict['also_viewed']:
 			pav_loss, pav_embs = relation_nce_loss(model, 0.5, model.product_idxs, 'product', 'also_viewed', 'related_product')
 			regularization_terms.extend(pav_embs)
 			#pav_loss = tf.Print(pav_loss, [pav_loss], 'this is pav', summarize=5)
-			loss += pav_loss
+			static_loss += pav_loss
 
 		# product + bought_together -> product
 		if model.use_relation_dict['bought_together']:
 			pbt_loss, pbt_embs = relation_nce_loss(model, 0.5, model.product_idxs, 'product', 'bought_together', 'related_product')
 			regularization_terms.extend(pbt_embs)
 			#pbt_loss = tf.Print(pbt_loss, [pbt_loss], 'this is pbt', summarize=5)
-			loss += pbt_loss
+			static_loss += pbt_loss
 
 		# product + is_brand -> brand
 		if model.use_relation_dict['brand']:
 			pib_loss, pib_embs = relation_nce_loss(model, 0.5, model.product_idxs, 'product', 'brand', 'brand')
 			regularization_terms.extend(pib_embs)
 			#pib_loss = tf.Print(pib_loss, [pib_loss], 'this is pib', summarize=5)
-			loss += pib_loss
+			static_loss += pib_loss
 
 		# product + is_category -> categories
 		if model.use_relation_dict['categories']:
 			pic_loss, pic_embs = relation_nce_loss(model, 0.5, model.product_idxs, 'product', 'categories', 'categories')
 			regularization_terms.extend(pic_embs)
 			#pic_loss = tf.Print(pic_loss, [pw_loss], 'this is pic', summarize=5)
-			loss += pic_loss
+			static_loss += pic_loss
+
+		# merge dynamic loss and static loss
+		loss = None
+		if model.dynamic_weight >= 0.0:
+			print('Dynamic relation weight %.2f' % model.dynamic_weight)
+			loss = 2 * (model.dynamic_weight * dynamic_loss + (1-model.dynamic_weight) * static_loss)
+		else:
+			# consider query as a static relation
+			loss = dynamic_loss + static_loss
 
 		# L2 regularization
 		if model.L2_lambda > 0:

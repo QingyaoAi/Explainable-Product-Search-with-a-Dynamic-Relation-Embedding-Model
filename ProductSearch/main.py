@@ -30,6 +30,8 @@ tf.app.flags.DEFINE_float("subsampling_rate", 1e-4,
 							"The rate to subsampling.")
 tf.app.flags.DEFINE_float("L2_lambda", 0.0,
 							"The lambda for L2 regularization.")
+tf.app.flags.DEFINE_float("dynamic_weight", 0.5,
+							"The weight for the dynamic relationship [0.0, 1.0].")
 tf.app.flags.DEFINE_float("query_weight", 0.5,
 							"The weight for query.")
 tf.app.flags.DEFINE_integer("batch_size", 64,
@@ -66,8 +68,8 @@ def create_model(session, forward_only, data_set, review_size):
 	model = ProductSearchEmbedding_model(
 			data_set,
 			FLAGS.window_size, FLAGS.embed_size, FLAGS.max_gradient_norm, FLAGS.batch_size,
-			FLAGS.learning_rate, FLAGS.L2_lambda, FLAGS.query_weight, FLAGS.net_struct,  
-			FLAGS.similarity_func, forward_only, FLAGS.negative_sample)
+			FLAGS.learning_rate, FLAGS.L2_lambda, FLAGS.dynamic_weight, FLAGS.query_weight, 
+			FLAGS.net_struct, FLAGS.similarity_func, forward_only, FLAGS.negative_sample)
 	ckpt = tf.train.get_checkpoint_state(FLAGS.train_dir)
 	if ckpt:
 		print("Reading model parameters from %s" % ckpt.model_checkpoint_path)

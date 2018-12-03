@@ -28,8 +28,8 @@ import PersonalizedEmbedding
 
 class ProductSearchEmbedding_model(object):
 	def __init__(self, data_set, window_size,
-				 embed_size, max_gradient_norm, batch_size, learning_rate, L2_lambda, query_weight,
-				 net_struct, similarity_func, forward_only=False, negative_sample = 5):
+				 embed_size, max_gradient_norm, batch_size, learning_rate, L2_lambda, dynamic_weight,
+				 query_weight, net_struct, similarity_func, forward_only=False, negative_sample = 5):
 		"""Create the model.
 	
 		Args:
@@ -60,6 +60,7 @@ class ProductSearchEmbedding_model(object):
 		self.batch_size = batch_size * (self.negative_sample + 1)
 		self.init_learning_rate = learning_rate
 		self.L2_lambda = L2_lambda
+		self.dynamic_weight = dynamic_weight
 		self.net_struct = net_struct
 		self.similarity_func = similarity_func
 		self.global_step = tf.Variable(0, trainable=False)

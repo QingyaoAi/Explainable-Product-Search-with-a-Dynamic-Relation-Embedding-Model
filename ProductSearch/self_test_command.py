@@ -2,7 +2,7 @@ import os,sys
 
 #SET_NAME = 'reviews_CDs_and_Vinyl_5.json.gz.stem.nostop/min_count5'
 SET_NAME = 'small_sample/min_count1'
-PROGRAM_PATH = '/net/home/aiqy/Project/KnowledgeEmbedding/ProductSearch/'
+PROGRAM_PATH = '/net/home/aiqy/Project/KnowledgeEmbedding/ProductSearch/weight_dynamic/'
 DATA_PATH = '/mnt/scratch/aiqy/ReviewEmbedding/working/Amazon/'+SET_NAME+ '/'#'/min_count5/'
 
 command = 'python ' + PROGRAM_PATH + 'main.py --data_dir ' + DATA_PATH
@@ -14,6 +14,7 @@ command += ' --input_train_dir ' + INPUT_TRAIN_DIR
 command += ' --learning_rate 0.5'
 command += ' --net_struct simplified_RNN_pv'
 command += ' --L2_lambda 0.00'
+command += ' --dynamic_weight -1'
 command += ' --query_weight -1'
 command += ' --steps_per_checkpoint 100'
 #command += ' --seconds_per_checkpoint 10'
