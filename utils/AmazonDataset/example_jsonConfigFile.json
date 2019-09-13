@@ -1,0 +1,3 @@
+{
+"stopwords": "./utils/AmazonDataset/inquery_stopwords.txt"
+}
