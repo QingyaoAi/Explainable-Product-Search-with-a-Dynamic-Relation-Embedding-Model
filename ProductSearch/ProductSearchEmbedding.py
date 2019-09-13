@@ -3,7 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 # We disable pylint because we need python3 compatibility.
-from six.moves import xrange# pylint: disable=redefined-builtin
+from six.moves import range# pylint: disable=redefined-builtin
 from six.moves import zip	 # pylint: disable=redefined-builtin
 
 from tensorflow.python.framework import dtypes
@@ -21,7 +21,7 @@ import sys
 import time
 
 import numpy as np
-from six.moves import xrange# pylint: disable=redefined-builtin
+from six.moves import range# pylint: disable=redefined-builtin
 import tensorflow as tf
 import PersonalizedEmbedding
 
@@ -80,7 +80,7 @@ class ProductSearchEmbedding_model(object):
 				'vocab' : vocab,
 				'size' : len(vocab),
 				'embedding' :tf.Variable( tf.random_uniform(									
-							[len(vocab), self.embed_size], -init_width, init_width),				
+							[len(vocab) + 1, self.embed_size], -init_width, init_width),				
 							name="%s_emb"%name)	
 			}
 		self.entity_dict = {
@@ -105,7 +105,7 @@ class ProductSearchEmbedding_model(object):
 				'embedding' : tf.Variable( tf.random_uniform(									
 								[self.embed_size], -init_width, init_width),				
 								name="%s_emb"%name),
-				'bias' : tf.Variable(tf.zeros([len(distribute)]), name="%s_b"%name)	
+				'bias' : tf.Variable(tf.zeros([len(distribute)+1]), name="%s_b"%name)	
 			}
 		self.relation_dict = {
 			'word' : relation('write', data_set.vocab_distribute, 'word'),
@@ -275,7 +275,7 @@ class ProductSearchEmbedding_model(object):
 			if test_mode == 'output_embedding':
 				return outputs, self.embed_output_keys
 			elif 'explain' in test_mode:
-				return [(entity_list[i][0], entity_list[i][1], outputs[i]) for i in xrange(len(entity_list))], None
+				return [(entity_list[i][0], entity_list[i][1], outputs[i]) for i in range(len(entity_list))], None
 			else:
 				return outputs[0], None	# product scores to input user
 
@@ -336,7 +336,7 @@ class ProductSearchEmbedding_model(object):
 				# Add knowledge
 				for key in product_knowledge:
 					if len(product_knowledge[key]) < 1:
-						knowledge_idxs_dict[key].append(-1)
+						knowledge_idxs_dict[key].append(self.entity_dict[self.relation_dict[key]['tail_entity']]['size'])
 						knowledge_weight_dict[key].append(0.0)
 					else:
 						knowledge_idxs_dict[key].append(random.choice(product_knowledge[key]))
@@ -368,7 +368,7 @@ class ProductSearchEmbedding_model(object):
 		input_feed[self.product_idxs.name] = product_idxs
 		input_feed[self.query_word_idxs.name] = query_word_idxs
 		input_feed[self.relation_dict['word']['idxs'].name] = word_idxs
-		input_feed[self.relation_dict['word']['weight'].name] = [1.0 for _ in xrange(len(word_idxs))]
+		input_feed[self.relation_dict['word']['weight'].name] = [1.0 for _ in range(len(word_idxs))]
 		for key in knowledge_idxs_dict:
 			input_feed[self.relation_dict[key]['idxs'].name] = knowledge_idxs_dict[key]
 			input_feed[self.relation_dict[key]['weight'].name] = knowledge_weight_dict[key]
@@ -379,7 +379,7 @@ class ProductSearchEmbedding_model(object):
 	def prepare_test_epoch(self):
 		self.test_user_query_set = set()
 		self.test_seq = []
-		for review_idx in xrange(len(self.data_set.review_info)):
+		for review_idx in range(len(self.data_set.review_info)):
 			user_idx = self.data_set.review_info[review_idx][0]
 			product_idx = self.data_set.review_info[review_idx][1]	
 			for query_idx in self.data_set.product_query_idx[product_idx]:
@@ -419,7 +419,7 @@ class ProductSearchEmbedding_model(object):
 			word_idxs.append(text_list[0])
 			# Add knowledge
 			for key in knowledge_idxs_dict:
-				knowledge_idxs_dict[key].append(-1)
+				knowledge_idxs_dict[key].append(self.entity_dict[self.relation_dict[key]['tail_entity']]['size'])
 				knowledge_weight_dict[key].append(0.0)
 			
 			#move to the next review
@@ -435,7 +435,7 @@ class ProductSearchEmbedding_model(object):
 		input_feed[self.product_idxs.name] = product_idxs
 		input_feed[self.query_word_idxs.name] = query_word_idxs
 		input_feed[self.relation_dict['word']['idxs'].name] = word_idxs
-		input_feed[self.relation_dict['word']['weight'].name] = [0.0 for _ in xrange(len(word_idxs))]
+		input_feed[self.relation_dict['word']['weight'].name] = [0.0 for _ in range(len(word_idxs))]
 		for key in knowledge_idxs_dict:
 			input_feed[self.relation_dict[key]['idxs'].name] = knowledge_idxs_dict[key]
 			input_feed[self.relation_dict[key]['weight'].name] = knowledge_weight_dict[key]

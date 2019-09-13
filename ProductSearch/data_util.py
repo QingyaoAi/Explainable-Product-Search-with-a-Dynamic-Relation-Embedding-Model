@@ -8,31 +8,31 @@ class Tensorflow_data:
 	def __init__(self, data_path, input_train_dir, set_name):
 		#get product/user/vocabulary information
 		self.product_ids = []
-		with gzip.open(data_path + 'product.txt.gz', 'r') as fin:
+		with gzip.open(data_path + 'product.txt.gz', 'rt') as fin:
 			for line in fin:
 				self.product_ids.append(line.strip())
 		self.product_size = len(self.product_ids)
 		self.user_ids = []
-		with gzip.open(data_path + 'users.txt.gz', 'r') as fin:
+		with gzip.open(data_path + 'users.txt.gz', 'rt') as fin:
 			for line in fin:
 				self.user_ids.append(line.strip())
 		self.user_size = len(self.user_ids)
 		self.words = []
-		with gzip.open(data_path + 'vocab.txt.gz', 'r') as fin:
+		with gzip.open(data_path + 'vocab.txt.gz', 'rt') as fin:
 			for line in fin:
 				self.words.append(line.strip())
 		self.vocab_size = len(self.words)
 		self.query_words = []
 		self.query_max_length = 0
-		with gzip.open(input_train_dir + 'query.txt.gz', 'r') as fin:
+		with gzip.open(input_train_dir + 'query.txt.gz', 'rt') as fin:
 			for line in fin:
 				words = [int(i) for i in line.strip().split(' ')]
 				if len(words) > self.query_max_length:
 					self.query_max_length = len(words)
 				self.query_words.append(words)
 		#pad
-		for i in xrange(len(self.query_words)):
-			self.query_words[i] = [-1 for j in xrange(self.query_max_length-len(self.query_words[i]))] + self.query_words[i]
+		for i in range(len(self.query_words)):
+			self.query_words[i] = [self.vocab_size for j in range(self.query_max_length-len(self.query_words[i]))] + self.query_words[i]
 
 
 		#get review sets
@@ -40,7 +40,7 @@ class Tensorflow_data:
 		self.vocab_distribute = np.zeros(self.vocab_size) 
 		self.review_info = []
 		self.review_text = []
-		with gzip.open(input_train_dir + set_name + '.txt.gz', 'r') as fin:
+		with gzip.open(input_train_dir + set_name + '.txt.gz', 'rt') as fin:
 			for line in fin:
 				arr = line.strip().split('\t')
 				self.review_info.append((int(arr[0]), int(arr[1]))) # (user_idx, product_idx)
@@ -56,7 +56,7 @@ class Tensorflow_data:
 
 		#get product query sets
 		self.product_query_idx = []
-		with gzip.open(input_train_dir + set_name + '_query_idx.txt.gz', 'r') as fin:
+		with gzip.open(input_train_dir + set_name + '_query_idx.txt.gz', 'rt') as fin:
 			for line in fin:
 				arr = line.strip().split(' ')
 				query_idx = []
@@ -68,17 +68,17 @@ class Tensorflow_data:
 
 		# get knowledge
 		self.related_product_ids = []
-		with gzip.open(data_path + 'related_product.txt.gz', 'r') as fin:
+		with gzip.open(data_path + 'related_product.txt.gz', 'rt') as fin:
 			for line in fin:
 				self.related_product_ids.append(line.strip())
 		self.related_product_size = len(self.related_product_ids)
 		self.brand_ids = []
-		with gzip.open(data_path + 'brand.txt.gz', 'r') as fin:
+		with gzip.open(data_path + 'brand.txt.gz', 'rt') as fin:
 			for line in fin:
 				self.brand_ids.append(line.strip())
 		self.brand_size = len(self.brand_ids)
 		self.category_ids = []
-		with gzip.open(data_path + 'category.txt.gz', 'r') as fin:
+		with gzip.open(data_path + 'category.txt.gz', 'rt') as fin:
 			for line in fin:
 				self.category_ids.append(line.strip())
 		self.category_size = len(self.category_ids)
@@ -111,7 +111,7 @@ class Tensorflow_data:
 			self.knowledge[name]['data'] = []
 			self.knowledge[name]['vocab'] = knowledge_vocab[name]
 			self.knowledge[name]['distribute'] = np.zeros(len(self.knowledge[name]['vocab']))
-			with gzip.open(knowledge_file_dict[name], 'r') as fin:
+			with gzip.open(knowledge_file_dict[name], 'rt') as fin:
 				for line in fin:
 					knowledge = []
 					arr = line.strip().split(' ')
@@ -130,19 +130,19 @@ class Tensorflow_data:
 	def sub_sampling(self, subsample_threshold):
 		if subsample_threshold == 0.0:
 			return
-		self.sub_sampling_rate = [1.0 for _ in xrange(self.vocab_size)]
+		self.sub_sampling_rate = [1.0 for _ in range(self.vocab_size)]
 		threshold = sum(self.vocab_distribute) * subsample_threshold
 		count_sub_sample = 0
-		for i in xrange(self.vocab_size):
+		for i in range(self.vocab_size):
 			#vocab_distribute[i] could be zero if the word does not appear in the training set
 			self.sub_sampling_rate[i] = min((np.sqrt(float(self.vocab_distribute[i]) / threshold) + 1) * threshold / float(self.vocab_distribute[i]),
 											1.0)
 			count_sub_sample += 1
 
 	def read_train_product_ids(self, data_path):
-		self.user_train_product_set_list = [set() for i in xrange(self.user_size)]
+		self.user_train_product_set_list = [set() for i in range(self.user_size)]
 		self.train_review_size = 0
-		with gzip.open(data_path + 'train.txt.gz', 'r') as fin:
+		with gzip.open(data_path + 'train.txt.gz', 'rt') as fin:
 			for line in fin:
 				self.train_review_size += 1
 				arr = line.strip().split('\t')
@@ -167,7 +167,7 @@ class Tensorflow_data:
 		with open(output_path + 'test.'+similarity_func+'.ranklist', 'w') as rank_fout:
 			for uq_pair in user_ranklist_map:
 				user_id = self.user_ids[uq_pair[0]]
-				for i in xrange(len(user_ranklist_map[uq_pair])):
+				for i in range(len(user_ranklist_map[uq_pair])):
 					product_id = self.product_ids[user_ranklist_map[uq_pair][i]]
 					rank_fout.write(user_id+'_'+str(uq_pair[1]) + ' Q0 ' + product_id + ' ' + str(i+1)
 							+ ' ' + str(user_ranklist_score_map[uq_pair][i]) + ' ProductSearchEmbedding\n')
@@ -182,8 +182,8 @@ class Tensorflow_data:
 				dimensions = len(embeddings[0])
 				emb_fout.write(str(length) + '\n')
 				emb_fout.write(str(dimensions) + '\n')
-				for i in xrange(length):
-					for j in xrange(dimensions):
+				for i in range(length):
+					for j in range(dimensions):
 						emb_fout.write(str(embeddings[i][j]) + ' ')
 					emb_fout.write('\n')
 			except:
@@ -214,7 +214,7 @@ class Tensorflow_data:
 			if rank >= rank_cut:
 				break
 		# print results
-		for i in xrange(len(entity_rank_list)):
+		for i in range(len(entity_rank_list)):
 			print('%d\t%d\t"%s"\t%.4f' % (i, entity_rank_list[i], 
 				self.entity_vocab[entity_name][entity_rank_list[i]], entity_rank_scores[i]))
 	

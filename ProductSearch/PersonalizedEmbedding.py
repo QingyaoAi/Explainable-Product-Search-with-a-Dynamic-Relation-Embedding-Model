@@ -3,7 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 # We disable pylint because we need python3 compatibility.
-from six.moves import xrange# pylint: disable=redefined-builtin
+from six.moves import range# pylint: disable=redefined-builtin
 from six.moves import zip	 # pylint: disable=redefined-builtin
 
 from tensorflow.python.framework import dtypes
@@ -21,7 +21,7 @@ import sys
 import time
 
 import numpy as np
-from six.moves import xrange# pylint: disable=redefined-builtin
+from six.moves import range# pylint: disable=redefined-builtin
 import tensorflow as tf
 
 																				
@@ -234,7 +234,7 @@ def build_graph_and_loss(model, scope = None):
 		# L2 regularization
 		if model.L2_lambda > 0:
 			l2_loss = tf.nn.l2_loss(regularization_terms[0])
-			for i in xrange(1,len(regularization_terms)):
+			for i in range(1,len(regularization_terms)):
 				l2_loss += tf.nn.l2_loss(regularization_terms[i])
 			loss += model.L2_lambda * l2_loss
 
