@@ -26,7 +26,7 @@ source venv/bin/activate
 
 **Install DREM from the source:**
 ```
-git clone tps://aiqingyao@bitbucket.org/aiqingyao/knowledgeembedding.git
+git clone https://github.com/QingyaoAi/Explainable-Product-Search-with-a-Dynamic-Relation-Embedding-Model.git
 cd knowledgeembedding
 python setup.py install #use setup-gpu.py for GPU support
 ```
