@@ -167,10 +167,14 @@ class Tensorflow_data:
 		with open(output_path + 'test.'+similarity_func+'.ranklist', 'w') as rank_fout:
 			for uq_pair in user_ranklist_map:
 				user_id = self.user_ids[uq_pair[0]]
+				rank = 1
 				for i in range(len(user_ranklist_map[uq_pair])):
+					if user_ranklist_map[uq_pair][i] >= len(self.product_ids):
+						continue
 					product_id = self.product_ids[user_ranklist_map[uq_pair][i]]
-					rank_fout.write(user_id+'_'+str(uq_pair[1]) + ' Q0 ' + product_id + ' ' + str(i+1)
+					rank_fout.write(user_id+'_'+str(uq_pair[1]) + ' Q0 ' + product_id + ' ' + str(rank)
 							+ ' ' + str(user_ranklist_score_map[uq_pair][i]) + ' ProductSearchEmbedding\n')
+					rank += 1
 
 
 	def output_embedding(self, embeddings, output_file_name):
