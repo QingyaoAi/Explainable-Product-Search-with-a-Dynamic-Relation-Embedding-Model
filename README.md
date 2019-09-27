@@ -108,7 +108,7 @@ bash exp_pipeline.sh
 ### Example Parameter Settings ###
 
 | Hyper-parameters  | Electronics | Kindle Store | CDs & Vinyl | Cell Phones & Accessories |
-| ------------- | ------------- |
+| ------------- | ------------- | ------------- | ------------- | ------------- |
 | min\_count | 5 | 5 | 5 | 5 |
 | embed\_size  | 400 | 400 | 400 | 400 |
 | negative\_sample  | 5 | 5 | 5 | 5 |
