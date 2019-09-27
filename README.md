@@ -106,16 +106,19 @@ bash exp_pipeline.sh
         3. Evaluate test rank lists with ground truth <input_train_dir>/test.qrels using trec_eval or galago eval tool.
 
 ### Example Parameter Settings ###
-	min_count —-> 5 
-	learning_rate —-> 0.5
-	steps_per_checkpoint -—> 400
-	max_train_epoch -—> 20
-	embed_size  —-> 400 (for Electronic), 100 (for Kindle), 300 (for CDs), 100 (for Cell Phone)
-	subsampling_rate  --> 1e-4 (for Electronic, Kindle, CDs), 0.0 (for Cell Phone)
-	L2_lambda  —-> 0.005
-	batch_size  —-> 64
-	window_size  —-> 3
-	negative_sample  -—> 5
-	rank_cutoff  —-> 100
-	similarity_func  --> 'cosine', ‘product' or 'bias_product' 
-	net_struct  --> ‘simplified_fs’ 
+
+| Hyper-parameters  | Electronics | Kindle Store | CDs & Vinyl | Cell Phones & Accessories |
+| ------------- | ------------- |
+| min\_count | 5 | 5 | 5 | 5 |
+| embed\_size  | 400 | 400 | 400 | 400 |
+| negative\_sample  | 5 | 5 | 5 | 5 |
+| learning\_rate | 0.5 | 0.5 | 0.5 | 0.5 |
+| max\_train\_epoch | 20 | 20 | 20 | 20 |
+| net\_struct | fs | fs | fs | fs |
+| batch\_size | 64 | 64 | 64 | 64 |
+| dynamic\_weight | 0.1 | 0.5 | 0.3 | 0.2 |
+| L2\_lambda | 0.005 | 0.005 | 0.005 | 0.005 |
+| subsampling\_rate  | 0.0001  | 0.0001  | 0.0001  | 0.0001  |
+| window\_size  | 3 | 3 | 3 | 3 |
+| similarity\_func | bias\_product | bias\_product | bias\_product | bias\_product |
+
