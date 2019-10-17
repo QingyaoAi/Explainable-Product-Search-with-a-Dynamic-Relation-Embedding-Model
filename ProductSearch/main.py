@@ -37,9 +37,9 @@ tf.app.flags.DEFINE_float("query_weight", 0.5,
 tf.app.flags.DEFINE_integer("batch_size", 64,
 							"Batch size to use during training.")
 #rank list size should be read from data
-tf.app.flags.DEFINE_string("data_dir", "/tmp", "Data directory")
+tf.app.flags.DEFINE_string("data_dir", "./tmp_data/", "Data directory")
 tf.app.flags.DEFINE_string("input_train_dir", "", "The directory of training and testing data")
-tf.app.flags.DEFINE_string("train_dir", "/tmp", "Model directory & output directory")
+tf.app.flags.DEFINE_string("train_dir", "./tmp/", "Model directory & output directory")
 tf.app.flags.DEFINE_string("similarity_func", "bias_product", "Select similarity function, which could be product, cosine and bias_product")
 tf.app.flags.DEFINE_string("net_struct", "simplified_fs", "Specify network structure parameters. Please read readme.txt for details.")
 tf.app.flags.DEFINE_integer("embed_size", 100, "Size of each embedding.")

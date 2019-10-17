@@ -165,7 +165,7 @@ def build_graph_and_loss(model, scope = None):
 								name="query_emb")
 			query_vec = model.query_static_vec
 			regularization_terms.extend([query_vec])
-		model.product_bias = tf.Variable(tf.zeros([model.entity_dict['product']['size']]), name="product_b")
+		model.product_bias = tf.Variable(tf.zeros([model.entity_dict['product']['size'] + 1]), name="product_b")
 		uqr_loss, uqr_embs = pair_search_loss(model, model.Wu, query_vec, model.user_idxs, # product prediction loss
 							model.entity_dict['user']['embedding'], model.product_idxs, 
 							model.entity_dict['product']['embedding'], model.product_bias, 
