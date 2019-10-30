@@ -29,11 +29,11 @@ if ! [ -d "./tmp/" ]; then
 fi
 
 # Run model
-python ProductSearch/main.py --train_dir=./tmp/ --data_dir=./tmp_data/min_count5/ --input_train_dir=./tmp_data/min_count5/random_query_split/ --subsampling_rate=0.0001 --window_size=3 --embed_size=400 --negative_sample=5 --learning_rate=0.5 --batch_size=64 --max_train_epoch=20 net_struct=fs --rank_cutoff100  --dynamic_weight=0.2 --L2_lambda=0.005 --steps_per_checkpoint=400
+python ProductSearch/main.py --train_dir=./tmp/ --data_dir=./tmp_data/min_count5/ --input_train_dir=./tmp_data/min_count5/random_query_split/ --subsampling_rate=0.0001 --window_size=3 --embed_size=400 --negative_sample=5 --learning_rate=0.5 --batch_size=64 --max_train_epoch=20 net_struct=fs --rank_cutoff=100  --dynamic_weight=0.2 --L2_lambda=0.005 --steps_per_checkpoint=400
 #python ProductSearch/main.py --data_dir=./tmp_data/min_count5/ --input_train_dir=./tmp_data/min_count5/seq_query_split/ --subsampling_rate=0.0001 --window_size=3 --embed_size=400 --negative_sample=5 --learning_rate=0.5 --batch_size=64 --max_train_epoch=20 net_struct=fs --rank_cutoff100  --dynamic_weight=0.2 --L2_lambda=0.005 --steps_per_checkpoint=400
 
 # Test model
-python ProductSearch/main.py --train_dir=./tmp/ --data_dir=./tmp_data/min_count5/ --input_train_dir=./tmp_data/min_count5/random_query_split/ --subsampling_rate=0.0001 --window_size=3 --embed_size=400 --negative_sample=5 --learning_rate=0.5 --batch_size=64 --max_train_epoch=20 net_struct=fs --rank_cutoff100  --dynamic_weight=0.2 --L2_lambda=0.005 --steps_per_checkpoint=400 --decode=True
+python ProductSearch/main.py --train_dir=./tmp/ --data_dir=./tmp_data/min_count5/ --input_train_dir=./tmp_data/min_count5/random_query_split/ --subsampling_rate=0.0001 --window_size=3 --embed_size=400 --negative_sample=5 --learning_rate=0.5 --batch_size=64 --max_train_epoch=20 net_struct=fs --rank_cutoff=100  --dynamic_weight=0.2 --L2_lambda=0.005 --steps_per_checkpoint=400 --decode=True
 #python ProductSearch/main.py --data_dir=./tmp_data/min_count5/ --input_train_dir=./tmp_data/min_count5/seq_query_split/ --subsampling_rate=0.0001 --window_size=3 --embed_size=400 --negative_sample=5 --learning_rate=0.5 --batch_size=64 --max_train_epoch=20 net_struct=fs --rank_cutoff100  --dynamic_weight=0.2 --L2_lambda=0.005 --steps_per_checkpoint=400 --decode=True
 
 # Download and install galago
