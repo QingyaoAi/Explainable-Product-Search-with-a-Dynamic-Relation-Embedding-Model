@@ -44,11 +44,11 @@ tf.app.flags.DEFINE_string("similarity_func", "bias_product", "Select similarity
 tf.app.flags.DEFINE_string("net_struct", "simplified_fs", "Specify network structure parameters. Please read readme.txt for details.")
 tf.app.flags.DEFINE_integer("embed_size", 100, "Size of each embedding.")
 tf.app.flags.DEFINE_integer("window_size", 5, "Size of context window.")
-tf.app.flags.DEFINE_integer("max_train_epoch", 5,
+tf.app.flags.DEFINE_integer("max_train_epoch", 20,
 							"Limit on the epochs of training (0: no limit).")
 tf.app.flags.DEFINE_integer("steps_per_checkpoint", 200,
 							"How many training steps to do per checkpoint.")
-tf.app.flags.DEFINE_integer("seconds_per_checkpoint", 3600,
+tf.app.flags.DEFINE_integer("epoch_per_save", 10,
 							"How many seconds to wait before storing embeddings.")
 tf.app.flags.DEFINE_integer("negative_sample", 5,
 							"How many samples to generate for negative sampling.")
@@ -135,16 +135,16 @@ def train():
 					sys.stdout.flush()
 					previous_words = model.finished_word_num
 					start_time = time.time()
-					#print('time: ' + str(time.time() - last_check_point_time))
-					#if time.time() - last_check_point_time > FLAGS.seconds_per_checkpoint:
-					#	checkpoint_path_best = os.path.join(FLAGS.train_dir, "ProductSearchEmbedding.ckpt")
-					#	model.saver.save(sess, checkpoint_path_best, global_step=model.global_step)
 
 			current_epoch += 1
-			#checkpoint_path_best = os.path.join(FLAGS.train_dir, "ProductSearchEmbedding.ckpt")
-			#model.saver.save(sess, checkpoint_path_best, global_step=model.global_step)
+
 			if current_epoch >= FLAGS.max_train_epoch:	
 				break
+
+			if current_epoch % FLAGS.steps_per_checkpoint == 0:
+				checkpoint_path_best = os.path.join(FLAGS.train_dir, "ProductSearchEmbedding.ckpt")
+				model.saver.save(sess, checkpoint_path_best, global_step=model.global_step)
+			
 		checkpoint_path_best = os.path.join(FLAGS.train_dir, "ProductSearchEmbedding.ckpt")
 		model.saver.save(sess, checkpoint_path_best, global_step=model.global_step)
 
