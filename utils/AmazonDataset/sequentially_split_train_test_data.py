@@ -5,8 +5,8 @@ import numpy as np
 import json
 
 data_path = sys.argv[1]
-review_sample_rate = float(sys.argv[2]) # Percentage of reviews used for test for each user
-query_sample_rate = float(sys.argv[3]) # Percetage of queries that are unique in testing
+review_sample_rate = float(sys.argv[2]) # Percentage of reviews used for test+valid for each user
+query_sample_rate = float(sys.argv[3]) # Percetage of queries that are unique in testing+validation
 output_path = data_path + 'seq_query_split/'
 if not os.path.exists(output_path):
     os.makedirs(output_path)
@@ -56,58 +56,95 @@ with gzip.open(data_path + 'u_r_seq.txt.gz', 'rt') as fin:
 
 # Generate train/test sets
 test_review_idx = set()
+test_product_set = set()
+valid_review_idx = set()
+valid_product_set = set()
 for review_seq in user_review_seq:
 	test_sample_num = int(review_sample_rate * len(review_seq))
 	for i in range(test_sample_num):
-		test_review_idx.add(review_seq[-1-i])
+		if i < test_sample_num/2.0:
+			test_review_idx.add(review_seq[-1-i])
+			test_product_set.add(review_product_list[review_seq[-1-i]])
+		else:
+			valid_review_idx.add(review_seq[-1-i])
+			valid_product_set.add(review_product_list[review_seq[-1-i]])
 
 test_query_idx = set()
-sample_number = int(len(all_query_idx) * query_sample_rate)
-test_query_idx = set(np.random.choice([i for i in range(len(all_query_idx))], sample_number , replace=False))		
+valid_query_idx = set()
+additional_train_query_idx = set()
+#sample_number = int(len(all_query_idx) * query_sample_rate)
+#test_query_idx = set(np.random.choice([i for i in range(len(all_query_idx))], sample_number , replace=False))		
 # refine the train query set so that every item has at least one query
-for query_idxs in product_query_idxs:
-	tmp = set(query_idxs) - test_query_idx
+for product_id in test_product_set:
+	query_idxs = product_query_idxs[product_id]
+	tmp_test = random.choices(query_idxs, k=int(max(1, len(query_idxs) * query_sample_rate/2)))
+	tmp_valid = random.choices(query_idxs, k=int(max(1, len(query_idxs) * query_sample_rate/2)))
+	for q in query_idxs:
+		if q in tmp_test:
+			test_query_idx.add(q)
+		elif q in tmp_valid:
+			valid_query_idx.add(q)
+		else:
+			additional_train_query_idx.add(q)
+unique_test_query = test_query_idx.union(valid_query_idx) - additional_train_query_idx
+for product_id in test_product_set:
+	query_idxs = product_query_idxs[product_id]
+	tmp = set(query_idxs) - unique_test_query
 	if len(tmp) < 1:
 		pick_i = int(random.random()*len(query_idxs))
-		test_query_idx.remove(query_idxs[pick_i])
+		additional_train_query_idx.add(pick_i)
+#for query_idxs in product_query_idxs:
+#	tmp = set(query_idxs) - test_query_idx
+#	if len(tmp) < 1:
+#		pick_i = int(random.random()*len(query_idxs))
+#		test_query_idx.remove(query_idxs[pick_i])
 
 
 #output train/test review data
 train_user_product_map = {}
 test_user_product_map = {}
-with gzip.open(output_path + 'train.txt.gz', 'wt') as train_fout, gzip.open(output_path + 'test.txt.gz', 'wt') as test_fout:
+valid_user_product_map = {}
+with gzip.open(output_path + 'train.txt.gz', 'wt') as train_fout, gzip.open(output_path + 'test.txt.gz', 'wt') as test_fout, gzip.open(output_path + 'valid.txt.gz', 'wt') as valid_fout:
 	with gzip.open(data_path + 'review_u_p.txt.gz', 'rt') as info_fin, gzip.open(data_path + 'review_text.txt.gz', 'rt') as text_fin:
 		info_line = info_fin.readline()
 		text_line = text_fin.readline()
 		index = 0
 		while info_line:
 			arr = info_line.strip().split(' ')
-			if index not in test_review_idx:
-				train_fout.write(arr[0] + '\t' + arr[1] + '\t' + text_line.strip() + '\n')
-				if int(arr[0]) not in train_user_product_map:
-					train_user_product_map[int(arr[0])] = set()
-				train_user_product_map[int(arr[0])].add(int(arr[1]))
-			else:
+			if index in test_review_idx:
 				test_fout.write(arr[0] + '\t' + arr[1] + '\t' + text_line.strip() + '\n')
 				if int(arr[0]) not in test_user_product_map:
 					test_user_product_map[int(arr[0])] = set()
 				test_user_product_map[int(arr[0])].add(int(arr[1]))
+			elif index in valid_review_idx:
+				valid_fout.write(arr[0] + '\t' + arr[1] + '\t' + text_line.strip() + '\n')
+				if int(arr[0]) not in valid_user_product_map:
+					valid_user_product_map[int(arr[0])] = set()
+				valid_user_product_map[int(arr[0])].add(int(arr[1]))
+			else:
+				train_fout.write(arr[0] + '\t' + arr[1] + '\t' + text_line.strip() + '\n')
+				if int(arr[0]) not in train_user_product_map:
+					train_user_product_map[int(arr[0])] = set()
+				train_user_product_map[int(arr[0])].add(int(arr[1]))
+				
 			index += 1
 			info_line = info_fin.readline()
 			text_line = text_fin.readline()
 
 #read review_u_p and construct train/test id sets
-with gzip.open(output_path + 'train_id.txt.gz', 'wt') as train_fout, gzip.open(output_path + 'test_id.txt.gz', 'wt') as test_fout:
+with gzip.open(output_path + 'train_id.txt.gz', 'wt') as train_fout, gzip.open(output_path + 'test_id.txt.gz', 'wt') as test_fout, gzip.open(output_path + 'valid_id.txt.gz', 'wt') as valid_fout:
 	with gzip.open(data_path + 'review_u_p.txt.gz', 'rt') as info_fin, gzip.open(data_path + 'review_id.txt.gz', 'rt') as id_fin:
 		info_line = info_fin.readline()
 		id_line = id_fin.readline()
 		index = 0
 		while info_line:
 			arr = info_line.strip().split(' ')
-			if index not in test_review_idx:
-				train_fout.write(arr[0] + '\t' + arr[1] + '\t' + str(id_line.strip()) + '\n')
-			else:
+			if index in test_review_idx:
 				test_fout.write(arr[0] + '\t' + arr[1] + '\t' + str(id_line.strip()) + '\n')
+			elif index in valid_review_idx:
+				valid_fout.write(arr[0] + '\t' + arr[1] + '\t' + str(id_line.strip()) + '\n')
+			else:
+				train_fout.write(arr[0] + '\t' + arr[1] + '\t' + str(id_line.strip()) + '\n')
 			index += 1
 			info_line = info_fin.readline()
 			id_line = id_fin.readline()
@@ -123,18 +160,33 @@ with gzip.open(output_path + 'query.txt.gz', 'wt' ) as query_fout:
 
 train_product_query_idxs = []
 test_product_query_idxs = []
-with gzip.open(output_path + 'train_query_idx.txt.gz', 'wt') as train_fout, gzip.open(output_path + 'test_query_idx.txt.gz','wt') as test_fout:
+valid_product_query_idxs = []
+mentioned_query_idx = test_query_idx.union(valid_query_idx).union(additional_train_query_idx)
+with gzip.open(output_path + 'train_query_idx.txt.gz', 'wt') as train_fout, gzip.open(output_path + 'test_query_idx.txt.gz','wt') as test_fout, gzip.open(output_path + 'valid_query_idx.txt.gz','wt') as valid_fout:
 	for query_idxs in product_query_idxs:
 		train_product_query_idxs.append([])
+		valid_product_query_idxs.append([])
 		test_product_query_idxs.append([])
 		for q_idx in query_idxs:
 			# All queries could appear in the test set
-			test_fout.write(str(q_idx) + ' ')
-			test_product_query_idxs[-1].append(q_idx)
-			# There are also some queries unique in the test set
-			if q_idx not in test_query_idx:
+			if q_idx in test_query_idx:
+				test_fout.write(str(q_idx) + ' ')
+				test_product_query_idxs[-1].append(q_idx)
+			if q_idx in valid_query_idx:
+				valid_fout.write(str(q_idx) + ' ')
+				valid_product_query_idxs[-1].append(q_idx)
+				# Output additional training query
+			if q_idx in additional_train_query_idx:
 				train_fout.write(str(q_idx) + ' ')
 				train_product_query_idxs[-1].append(q_idx)
+			if q_idx not in mentioned_query_idx:
+				train_fout.write(str(q_idx) + ' ')
+				train_product_query_idxs[-1].append(q_idx)
+			# There are also some queries unique in the test set
+			#if q_idx not in test_query_idx:
+			#	train_fout.write(str(q_idx) + ' ')
+			#	train_product_query_idxs[-1].append(q_idx)
+
 		train_fout.write('\n')
 		test_fout.write('\n')
 
@@ -188,6 +240,8 @@ output_qrels_jsonQuery(test_user_product_map, test_product_query_idxs,
 				output_path + 'test.qrels', output_path + 'test_query.json')
 output_qrels_jsonQuery(train_user_product_map, train_product_query_idxs, 
 				output_path + 'train.qrels', output_path + 'train_query.json')
+output_qrels_jsonQuery(valid_user_product_map, valid_product_query_idxs, 
+				output_path + 'valid.qrels', output_path + 'valid_query.json')
 
 # output statisitc
 with open(output_path + 'statistic.txt', 'wt') as fout:
@@ -198,6 +252,8 @@ with open(output_path + 'statistic.txt', 'wt') as fout:
 	fout.write('Total Queries ' + str(len(all_query_idx)) + '\n')
 	fout.write('Max Query Length ' + str(query_max_length) + '\n')
 	fout.write('Test Review ' + str(len(test_review_idx)) + '\n')
-	fout.write('Test Unique Queries ' + str(len(test_query_idx)) + '\n')
+	fout.write('Test Queries ' + str(len(test_query_idx)) + '\n')
+	fout.write('Valid Review ' + str(len(valid_review_idx)) + '\n')
+	fout.write('Valid Queries ' + str(len(valid_query_idx)) + '\n')
 
 

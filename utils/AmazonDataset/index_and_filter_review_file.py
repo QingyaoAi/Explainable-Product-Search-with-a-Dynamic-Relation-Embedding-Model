@@ -61,6 +61,7 @@ word_map = index_set(word_list)
 user_map = index_set(user_list)
 product_map = index_set(product_list)
 user_review_seq = {} # recording the sequence of user reviews in time
+item_review_seq = {} # recording the sequence of item reviews in time
 count_valid_review = 0
 with gzip.open(output_path + 'review_text.txt.gz', 'wt') as fout_text, gzip.open(output_path + 'review_u_p.txt.gz', 'wt') as fout_u_p:
 	with gzip.open(output_path + 'review_id.txt.gz', 'wt') as fout_id, gzip.open(output_path + 'review_rating.txt.gz', 'wt') as fout_rating:
@@ -88,6 +89,9 @@ with gzip.open(output_path + 'review_text.txt.gz', 'wt') as fout_text, gzip.open
 					if user not in user_review_seq:
 						user_review_seq[user] = []
 					user_review_seq[user].append((count_valid_review, time))
+					if product not in item_review_seq:
+						item_review_seq[product] = []
+					item_review_seq[product].append((count_valid_review, time))
 					fout_text.write('\n')
 					fout_u_p.write(user_map[user] + ' ' + product_map[product] + '\n')
 					fout_id.write('line_' + str(index) + '\n')
@@ -105,12 +109,28 @@ with gzip.open(output_path + 'u_r_seq.txt.gz', 'wt') as fout:
 		for i in range(len(user_review_seq[user])):
 			review_id = user_review_seq[user][i][0]
 			time = user_review_seq[user][i][1]
-			review_loc_time_list[review_id] = [i, time]
+			review_loc_time_list[review_id] = [i]
+
+# Sort each item's reviews according to time and output to files
+with gzip.open(output_path + 'p_r_seq.txt.gz', 'wt') as fout:
+	for product in product_list:
+		review_time_list = item_review_seq[product]
+		item_review_seq[product] = sorted(review_time_list, key=operator.itemgetter(1))
+		fout.write(' '.join([str(x[0]) for x in item_review_seq[product]]) + '\n')
+		for i in range(len(item_review_seq[product])):
+			review_id = item_review_seq[product][i][0]
+			time = item_review_seq[product][i][1]
+			review_loc_time_list[review_id].append(i)
+			review_loc_time_list[review_id].append(time)
 
 # Output the location (sorted by time) of each review in the corresponding user review list for quick indexing.
-with gzip.open(output_path + 'review_loc_and_time.txt.gz', 'wt') as fout:
+with gzip.open(output_path + 'review_uloc_ploc_and_time.txt.gz', 'wt') as fout:
 	for t_l in review_loc_time_list:
 		fout.write(' '.join([str(x) for x in t_l]) + '\n')
+
+
+
+
 
 
 
