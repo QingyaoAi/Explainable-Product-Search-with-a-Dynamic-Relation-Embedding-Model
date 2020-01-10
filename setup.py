@@ -7,7 +7,7 @@ def read(fname):
 
 
 setup(
-    name="ESRT",
+    name="DREM",
     version="0.1.0",
     author="Qingyao Ai",
     author_email="aiqingyao@gmail.com",

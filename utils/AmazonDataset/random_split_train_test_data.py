@@ -97,9 +97,9 @@ with gzip.open(output_path + 'train_id.txt.gz', 'wt') as train_fout, gzip.open(o
 		while info_line:
 			arr = info_line.strip().split(' ')
 			if index not in test_review_idx:
-				train_fout.write(arr[0] + '\t' + arr[1] + '\t' + str(id_line.strip()) + '\n')
+				train_fout.write(arr[0] + '\t' + arr[1] + '\t' + str(id_line.strip()) + '\t' + str(index) + '\n')
 			else:
-				test_fout.write(arr[0] + '\t' + arr[1] + '\t' + str(id_line.strip()) + '\n')
+				test_fout.write(arr[0] + '\t' + arr[1] + '\t' + str(id_line.strip()) + '\t' + str(index) + '\n')
 			index += 1
 			info_line = info_fin.readline()
 			id_line = id_fin.readline()

@@ -143,13 +143,13 @@ with gzip.open(output_path + 'train_id.txt.gz', 'wt') as train_fout, gzip.open(o
 			product_idx = int(arr[1]) 
 			if index in test_review_idx:
 				query_idx = random.choice(list(product_query_split_idxs[product_idx]['test']))
-				test_fout.write(arr[0] + '\t' + arr[1] + '\t' + str(id_line.strip()) + '\t' + str(query_idx) + '\n')
+				test_fout.write(arr[0] + '\t' + arr[1] + '\t' + str(id_line.strip()) + '\t' + str(query_idx) + '\t' + str(index) + '\n')
 			elif index in valid_review_idx:
 				query_idx = random.choice(list(product_query_split_idxs[product_idx]['test']))
-				valid_fout.write(arr[0] + '\t' + arr[1] + '\t' + str(id_line.strip()) + '\t' + str(query_idx) + '\n')
+				valid_fout.write(arr[0] + '\t' + arr[1] + '\t' + str(id_line.strip()) + '\t' + str(query_idx) + '\t' + str(index) + '\n')
 			else:
 				query_idx = random.choice(list(product_query_split_idxs[product_idx]['train']))
-				train_fout.write(arr[0] + '\t' + arr[1] + '\t' + str(id_line.strip()) + '\t' + str(query_idx) + '\n')
+				train_fout.write(arr[0] + '\t' + arr[1] + '\t' + str(id_line.strip()) + '\t' + str(query_idx) + '\t' + str(index) + '\n')
 			index += 1
 			info_line = info_fin.readline()
 			id_line = id_fin.readline()
