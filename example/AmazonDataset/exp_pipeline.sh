@@ -20,7 +20,7 @@ python ./utils/AmazonDataset/match_with_meta_knowledge.py ./tmp_data/min_count5/
 
 # Randomly split train/test
 ## The 30% purchases of each user are used as test data
-## Also, we randomly sample 20% queries and make them unique in the test set.
+## Also, we randomly sample 30% queries and make them unique in the test set.
 python utils/AmazonDataset/random_split_train_test_data.py tmp_data/min_count5/ 0.3 0.3
 
 # Create output directory
