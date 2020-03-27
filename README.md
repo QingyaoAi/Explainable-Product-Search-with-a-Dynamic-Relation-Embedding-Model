@@ -110,7 +110,7 @@ bash exp_pipeline.sh
 | Hyper-parameters  | Electronics | Kindle Store | CDs & Vinyl | Cell Phones & Accessories |
 | ------------- | ------------- | ------------- | ------------- | ------------- |
 | min\_count | 5 | 5 | 5 | 5 |
-| embed\_size  | 400 | 400 | 400 | 400 |
+| embed\_size  | 200 | 300 | 200 | 200 |
 | negative\_sample  | 5 | 5 | 5 | 5 |
 | learning\_rate | 0.5 | 0.5 | 0.5 | 0.5 |
 | max\_train\_epoch | 20 | 20 | 20 | 20 |
