@@ -8,7 +8,7 @@ It is designed as a generative model and the embedding representations for queri
 The probability (which is also the rank score) of an item being purchased by a user with a query can be computed with their corresponding latent representations. 
 Please refer to the paper for more details.
 
-* For data used in the original paper, please check https://github.com/QingyaoAi/Amazon-Product-Search-Datasets
+* For results and data used in the original paper, please check https://github.com/QingyaoAi/Amazon-Product-Search-Datasets
 
 ### Requirements: ###
     1. To run the DREM model in ./ProductSearch/ and the python scripts in ./utils/, python 3.0+ and Tensorflow v1.3+ are needed. (In the paper, we used python 3.6 and Tensorflow v1.4.0)
