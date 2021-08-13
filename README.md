@@ -1,4 +1,5 @@
 # Overview #
+
 This is an implementation of the Dynamic Relation Embedding Model (DREM) for personalized product search. Please cite the following paper if you plan to use it for your project：
     
 *	Qingyao Ai, Yongfeng Zhang, Keping Bi, W. Bruce Croft. Explainable Product Search with a Dynamic Relation Embedding Model. ACM Transactions on Information Systems (TOIS). 2019
@@ -9,6 +10,8 @@ The probability (which is also the rank score) of an item being purchased by a u
 Please refer to the paper for more details.
 
 * For data used in the original paper, please check https://github.com/QingyaoAi/Amazon-Product-Search-Datasets
+
+*Latest version of DREM with explanation generation functions can be found [here](https://github.com/utahIRlab/drem-evaluation)*
 
 ### Requirements: ###
     1. To run the DREM model in ./ProductSearch/ and the python scripts in ./utils/, python 3.0+ and Tensorflow v1.3+ are needed. (In the paper, we used python 3.6 and Tensorflow v1.4.0)
