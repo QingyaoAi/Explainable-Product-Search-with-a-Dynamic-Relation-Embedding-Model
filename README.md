@@ -9,7 +9,7 @@ It is designed as a generative model and the embedding representations for queri
 The probability (which is also the rank score) of an item being purchased by a user with a query can be computed with their corresponding latent representations. 
 Please refer to the paper for more details.
 
-* For data used in the original paper, please check https://github.com/QingyaoAi/Amazon-Product-Search-Datasets
+* For results and data used in the original paper, please check https://github.com/QingyaoAi/Amazon-Product-Search-Datasets
 
 *Latest version of DREM with explanation generation functions can be found [here](https://github.com/utahIRlab/drem-evaluation)*
 
